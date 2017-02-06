@@ -324,10 +324,9 @@ func BenchmarkSysfsWrite(b *testing.B) {
 		b.Fatal("Couldn't open value.")
 	}
 	defer f.Close()
-	r := make([]byte, 1)
-	r[0] = 0
+	r := "0"
 	for i := 0; i < b.N; i++ {
-		f.Write(r)
+		f.WriteString(r)
 	}
 }
 
@@ -349,14 +348,13 @@ func BenchmarkSysfsToggle(b *testing.B) {
 		b.Fatal("Couldn't open value.")
 	}
 	defer f.Close()
-	r := make([]byte, 1)
-	r[0] = 0
+	r := "0"
 	for i := 0; i < b.N; i++ {
-		if r[0] == 0 {
-			r[0] = 1
+		if r == "0" {
+			r = "1"
 		} else {
-			r[0] = 0
+			r = "0"
 		}
-		f.Write(r)
+		f.WriteString(r)
 	}
 }
