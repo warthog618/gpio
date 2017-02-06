@@ -242,7 +242,6 @@ func TestToggleLooped(t *testing.T) {
 	}
 }
 
-
 func BenchmarkRead(b *testing.B) {
 	err := Open()
 	if err != nil {
@@ -279,5 +278,85 @@ func BenchmarkToggle(b *testing.B) {
 	pin.SetMode(Output)
 	for i := 0; i < b.N; i++ {
 		pin.Toggle()
+	}
+}
+
+func BenchmarkSysfsRead(b *testing.B) {
+	err := Open()
+	if err != nil {
+		b.Fatal("Open returned error", err)
+	}
+	defer Close()
+	pin := NewPin(J8_7)
+	// setup sysfs
+	err = export(pin)
+	if err != nil {
+		b.Fatal("Couldn't export pin.")
+	}
+	defer unexport(pin)
+	f, err := openValue(pin)
+	if err != nil {
+		b.Fatal("Couldn't open value.")
+	}
+	defer f.Close()
+	r := make([]byte, 1)
+	r[0] = 0
+	for i := 0; i < b.N; i++ {
+		f.Read(r)
+	}
+}
+
+func BenchmarkSysfsWrite(b *testing.B) {
+	err := Open()
+	if err != nil {
+		b.Fatal("Open returned error", err)
+	}
+	defer Close()
+	pin := NewPin(J8_7)
+	// setup sysfs
+	err = export(pin)
+	if err != nil {
+		b.Fatal("Couldn't export pin.")
+	}
+	defer unexport(pin)
+	f, err := openValue(pin)
+	if err != nil {
+		b.Fatal("Couldn't open value.")
+	}
+	defer f.Close()
+	r := make([]byte, 1)
+	r[0] = 0
+	for i := 0; i < b.N; i++ {
+		f.Write(r)
+	}
+}
+
+func BenchmarkSysfsToggle(b *testing.B) {
+	err := Open()
+	if err != nil {
+		b.Fatal("Open returned error", err)
+	}
+	defer Close()
+	pin := NewPin(J8_7)
+	// setup sysfs
+	err = export(pin)
+	if err != nil {
+		b.Fatal("Couldn't export pin.")
+	}
+	defer unexport(pin)
+	f, err := openValue(pin)
+	if err != nil {
+		b.Fatal("Couldn't open value.")
+	}
+	defer f.Close()
+	r := make([]byte, 1)
+	r[0] = 0
+	for i := 0; i < b.N; i++ {
+		if r[0] == 0 {
+			r[0] = 1
+		} else {
+			r[0] = 0
+		}
+		f.Write(r)
 	}
 }
