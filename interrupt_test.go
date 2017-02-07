@@ -274,7 +274,9 @@ func TestCloseInterrupts(t *testing.T) {
 // Looped tests require a jumper across Raspberry Pi J8 pins 15 and 16.
 // This is just a smoke test for the Watch and Unwatch methods.
 func TestWatchLooped(t *testing.T) {
-	TestOpen(t)
+	if err := Open(); err != nil {
+		t.Fatal("Open returned error", err)
+	}
 	defer Close()
 	pinIn := NewPin(J8_15)
 	pinOut := NewPin(J8_16)
@@ -308,5 +310,38 @@ func TestWatchLooped(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 	if called != false {
 		t.Error("Watcher called after unwatch.")
+	}
+}
+
+// This provides a coarse estimate of the interrupt latency,
+// i.e. the time between an interrupt being triggered and handled.
+// There is some overhead in there due to the handshaking via a channel etc...
+// so this provides an upper bound.
+func BenchmarkInterruptLatency(b *testing.B) {
+	if err := Open(); err != nil {
+		b.Fatal("Open returned error", err)
+	}
+	defer Close()
+	pinIn := NewPin(J8_15)
+	pinOut := NewPin(J8_16)
+	pinIn.SetMode(Input)
+	defer pinOut.SetMode(Input)
+	pinOut.Write(Low)
+	pinOut.SetMode(Output)
+	mode := pinOut.Mode()
+	if mode != Output {
+		b.Fatal("Failed to set output")
+	}
+	ich := make(chan int)
+	err := pinIn.Watch(EdgeBoth, func(pin *Pin) {
+		ich <- 1
+	})
+	if err != nil {
+		b.Fatal("Registration failed", err)
+	}
+	defer pinIn.Unwatch()
+	for i := 0; i < b.N; i++ {
+		pinOut.Toggle()
+		waitInterrupt(ich, 5*time.Millisecond)
 	}
 }

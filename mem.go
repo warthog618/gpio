@@ -18,7 +18,7 @@ var (
 	mem8    []uint8
 )
 
-// Open and memory map GPIO memory range from /dev/mem .
+// Open and memory map GPIO memory range from /dev/gpiomem .
 // Some reflection magic is used to convert it to a unsafe []uint32 pointer
 func Open() (err error) {
 
