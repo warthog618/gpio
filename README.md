@@ -3,7 +3,7 @@ gpio
 
 GPIO library for the Raspberry Pi.
 
-gpio is a Go library for accessing [GPIO](http://elinux.org/Rpi_Low-level_peripherals) GPIO pins on the [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi).
+gpio is a Go library for accessing [GPIO](http://elinux.org/Rpi_Low-level_peripherals) pins on the [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi).
 
 The library was inspired by and borrows from [go-rpio](https://github.com/stianeikeland/go-rpio), which is fast but lacks interrupt support, and [embd](https://github.com/kidoman/embd), which supports interrupts, but uses sysfs for read/write and has a far broader scope than I require.
 
@@ -150,7 +150,8 @@ Later Pis can also use ARM7.
 The tests include benchmarks on reads and writes.  Reading pin levels through sysfs is provided for comparison.
 
 These are the results from a Raspberry Pi B(Rev1)
-```$ ./gpio.test -test.bench=.*
+```
+$ ./gpio.test -test.bench=.*
 PASS
 BenchmarkRead            	 5000000	       240 ns/op
 BenchmarkWrite           	20000000	        81.9 ns/op
