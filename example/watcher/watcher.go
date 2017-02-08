@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gpio"
+	"github.com/warthog618/gpio"
 	"time"
 )
 
