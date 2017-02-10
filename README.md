@@ -14,7 +14,7 @@ Supports the following functionality:
 - Write (High / Low)
 - Read (High / Low)
 - Pullups (Up / Down / None)
-- Watches/Interrupts
+- Watches/Interrupts (Rising/Falling/Both)
 
 ## Usage ##
 

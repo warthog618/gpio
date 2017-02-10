@@ -9,6 +9,16 @@ import (
 	"testing"
 )
 
+func setup_dio(t *testing.T) {
+	if err := Open(); err != nil {
+		t.Fatal("Open returned error", err)
+	}
+}
+
+func teardown_dio() {
+	Close()
+}
+
 func TestUninitialisedPanic(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -25,22 +35,15 @@ func TestClosedPanic(t *testing.T) {
 			t.Errorf("NewPin did not panic")
 		}
 	}()
-	TestOpen(t)
-	Close()
+	setup_dio(t)
+	teardown_dio()
 	p := NewPin(J8_7)
 	_ = p
 }
 
-func TestOpen(t *testing.T) {
-	err := Open()
-	if err != nil {
-		t.Fatal("Open returned error", err)
-	}
-}
-
 func TestRead(t *testing.T) {
-	TestOpen(t)
-	defer Close()
+	setup_dio(t)
+	defer teardown_dio()
 	pin := NewPin(J8_7)
 	// A basic read test - assuming the pin is input and pulled high
 	// which is the default state for this pin on a Pi.
@@ -56,8 +59,8 @@ func TestRead(t *testing.T) {
 }
 
 func TestMode(t *testing.T) {
-	TestOpen(t)
-	defer Close()
+	setup_dio(t)
+	defer teardown_dio()
 	pin := NewPin(J8_7)
 	mode := pin.Mode()
 	if mode != Input {
@@ -86,8 +89,8 @@ func TestMode(t *testing.T) {
 }
 
 func TestPull(t *testing.T) {
-	TestOpen(t)
-	defer Close()
+	setup_dio(t)
+	defer teardown_dio()
 	pin := NewPin(J8_7)
 	defer pin.PullUp()
 	// A basic read test - using the pull up/down to drive he pin.
@@ -115,8 +118,8 @@ func TestPull(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	TestOpen(t)
-	defer Close()
+	setup_dio(t)
+	defer teardown_dio()
 	pin := NewPin(J8_7)
 	mode := pin.Mode()
 	if mode != Input {
@@ -164,8 +167,8 @@ func TestWrite(t *testing.T) {
 
 // Looped tests require a jumper across Raspberry Pi J8 pins 15 and 16.
 func TestWriteLooped(t *testing.T) {
-	TestOpen(t)
-	defer Close()
+	setup_dio(t)
+	defer teardown_dio()
 	pinIn := NewPin(J8_15)
 	pinOut := NewPin(J8_16)
 	pinIn.SetMode(Input)
@@ -186,8 +189,8 @@ func TestWriteLooped(t *testing.T) {
 }
 
 func TestToggle(t *testing.T) {
-	TestOpen(t)
-	defer Close()
+	setup_dio(t)
+	defer teardown_dio()
 	pin := NewPin(J8_7)
 	defer pin.SetMode(Input)
 	pin.Write(Low)
@@ -217,8 +220,8 @@ func TestToggle(t *testing.T) {
 
 // Looped tests require a jumper across Raspberry Pi J8 pins 15 and 16.
 func TestToggleLooped(t *testing.T) {
-	TestOpen(t)
-	defer Close()
+	setup_dio(t)
+	defer teardown_dio()
 	pinIn := NewPin(J8_15)
 	pinOut := NewPin(J8_16)
 	pinIn.SetMode(Input)

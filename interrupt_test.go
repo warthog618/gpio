@@ -25,9 +25,8 @@ func waitInterrupt(ch chan int, timeout time.Duration) (int, error) {
 	}
 }
 
-func setup(t *testing.T) (pinIn *Pin, pinOut *Pin, watcher *Watcher) {
-	err := Open()
-	if err != nil {
+func setup_intr(t *testing.T) (pinIn *Pin, pinOut *Pin, watcher *Watcher) {
+	if err := Open(); err != nil {
 		t.Fatal("Open returned error", err)
 	}
 	pinIn = NewPin(J8_15)
@@ -39,14 +38,14 @@ func setup(t *testing.T) (pinIn *Pin, pinOut *Pin, watcher *Watcher) {
 	return
 }
 
-func teardown(pinIn *Pin, pinOut *Pin) {
+func teardown_intr(pinIn *Pin, pinOut *Pin) {
 	pinOut.SetMode(Input)
 	Close()
 }
 
 func TestRegister(t *testing.T) {
-	pinIn, pinOut, watcher := setup(t)
-	defer teardown(pinIn, pinOut)
+	pinIn, pinOut, watcher := setup_intr(t)
+	defer teardown_intr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 1
@@ -61,35 +60,35 @@ func TestRegister(t *testing.T) {
 }
 
 func TestReregister(t *testing.T) {
-	pinIn, pinOut, watcher := setup(t)
-	defer teardown(pinIn, pinOut)
+	pinIn, pinOut, watcher := setup_intr(t)
+	defer teardown_intr(pinIn, pinOut)
 	ich := make(chan int)
-	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
+	if err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 1
-	})
-	if err != nil {
+	}); err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	_, err = waitInterrupt(ich, time.Millisecond)
-	if err == nil {
+	if _, err := waitInterrupt(ich, time.Millisecond); err == nil {
 		t.Error("Spurious interrupt")
 	}
-	err = watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
+	if err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 2
-	})
+	}); err == nil {
+		t.Fatal("Reregistration didn't fail.")
+	}
 	pinOut.High()
 	val, err := waitInterrupt(ich, time.Millisecond)
 	switch {
 	case err != nil:
-		t.Error("Didn't call new handler")
-	case val == 1:
-		t.Error("Called old handler")
+		t.Error("Didn't call handler")
+	case val != 1:
+		t.Error("Called new handler")
 	}
 }
 
 func TestUnregister(t *testing.T) {
-	pinIn, pinOut, watcher := setup(t)
-	defer teardown(pinIn, pinOut)
+	pinIn, pinOut, watcher := setup_intr(t)
+	defer teardown_intr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 1
@@ -112,8 +111,8 @@ func TestUnregister(t *testing.T) {
 }
 
 func TestEdgeRising(t *testing.T) {
-	pinIn, pinOut, watcher := setup(t)
-	defer teardown(pinIn, pinOut)
+	pinIn, pinOut, watcher := setup_intr(t)
+	defer teardown_intr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		if pin.Read() == High {
@@ -145,8 +144,8 @@ func TestEdgeRising(t *testing.T) {
 }
 
 func TestEdgeFalling(t *testing.T) {
-	pinIn, pinOut, watcher := setup(t)
-	defer teardown(pinIn, pinOut)
+	pinIn, pinOut, watcher := setup_intr(t)
+	defer teardown_intr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeFalling, func(pin *Pin) {
 		if pin.Read() == High {
@@ -175,8 +174,8 @@ func TestEdgeFalling(t *testing.T) {
 }
 
 func TestEdgeBoth(t *testing.T) {
-	pinIn, pinOut, watcher := setup(t)
-	defer teardown(pinIn, pinOut)
+	pinIn, pinOut, watcher := setup_intr(t)
+	defer teardown_intr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeBoth, func(pin *Pin) {
 		if pin.Read() == High {
@@ -210,8 +209,8 @@ func TestEdgeBoth(t *testing.T) {
 }
 
 func TestEdgeNone(t *testing.T) {
-	pinIn, pinOut, watcher := setup(t)
-	defer teardown(pinIn, pinOut)
+	pinIn, pinOut, watcher := setup_intr(t)
+	defer teardown_intr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeNone, func(pin *Pin) {
 		if pin.Read() == High {
@@ -238,16 +237,17 @@ func TestEdgeNone(t *testing.T) {
 }
 
 func TestUnexportedEdge(t *testing.T) {
-	pinIn, _, _ := setup(t)
+	pinIn, pinOut, _ := setup_intr(t)
 	err := setEdge(pinIn, EdgeNone)
 	if err == nil {
 		t.Error("Edge should fail unless pin exported first.")
 	}
+	defer teardown_intr(pinIn, pinOut)
 }
 
 func TestCloseInterrupts(t *testing.T) {
-	pinIn, pinOut, watcher := setup(t)
-	defer teardown(pinIn, pinOut)
+	pinIn, pinOut, watcher := setup_intr(t)
+	defer teardown_intr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeNone, func(pin *Pin) {
 		if pin.Read() == High {
@@ -271,6 +271,30 @@ func TestCloseInterrupts(t *testing.T) {
 	}
 }
 
+func TestWatchExists(t *testing.T) {
+	if err := Open(); err != nil {
+		t.Fatal("Open returned error", err)
+	}
+	pinIn := NewPin(J8_15)
+	defer teardown_intr(nil, pinIn)
+	pinIn.SetMode(Input)
+	called := false
+	if err := pinIn.Watch(EdgeFalling, func(pin *Pin) {
+		called = true
+	}); err != nil {
+		t.Fatal("Watch returned error", err)
+	}
+	if err := pinIn.Watch(EdgeFalling, func(pin *Pin) {
+		called = true
+	}); err == nil {
+		t.Error("Watch didn't return error")
+	}
+	time.Sleep(2 * time.Millisecond)
+	if called {
+		t.Error("Handler called")
+	}
+}
+
 // Looped tests require a jumper across Raspberry Pi J8 pins 15 and 16.
 // This is just a smoke test for the Watch and Unwatch methods.
 func TestWatchLooped(t *testing.T) {
@@ -289,12 +313,14 @@ func TestWatchLooped(t *testing.T) {
 		t.Fatal("Failed to set output")
 	}
 	called := false
-	pinIn.Watch(EdgeFalling, func(pin *Pin) {
+	if err := pinIn.Watch(EdgeFalling, func(pin *Pin) {
 		called = true
-	})
+	}); err != nil {
+		t.Fatal("Watch returned error", err)
+	}
 	pinOut.High()
 	time.Sleep(2 * time.Millisecond)
-	if called != false {
+	if called {
 		t.Error("Spurious Watcher called.")
 		called = false
 	}

@@ -1,6 +1,7 @@
 package gpio
 
 import (
+	"errors"
 	"os"
 	"reflect"
 	"sync"
@@ -21,7 +22,9 @@ var (
 // Open and memory map GPIO memory range from /dev/gpiomem .
 // Some reflection magic is used to convert it to a unsafe []uint32 pointer
 func Open() (err error) {
-
+	if len(mem) != 0 {
+		return errors.New("already open")
+	}
 	file, err := os.OpenFile(
 		"/dev/gpiomem",
 		os.O_RDWR|os.O_SYNC,

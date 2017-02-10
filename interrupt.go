@@ -192,16 +192,15 @@ func setEdge(pin *Pin, edge Edge) error {
 	return err
 }
 
+// The pin can only be registered once.  Subsequent registers,
+// without an Unregister, will return an error.
 func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) error {
 	watcher.mu.Lock()
 	defer watcher.mu.Unlock()
 
-	pinFd, ok := watcher.interruptFds[pin.pin]
+	_, ok := watcher.interruptFds[pin.pin]
 	if ok {
-		intr := watcher.interrupts[pinFd]
-		intr.handler = handler
-		setEdge(pin, edge)
-		return nil
+		return errors.New("watch already exists")
 	}
 	if err := export(pin); err != nil {
 		return err
@@ -213,7 +212,7 @@ func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) err
 	if err != nil {
 		return err
 	}
-	pinFd = int(valueFile.Fd())
+	pinFd := int(valueFile.Fd())
 
 	event := syscall.EpollEvent{Events: syscall.EPOLLET & 0xffffffff}
 	if err := syscall.SetNonblock(pinFd, true); err != nil {
@@ -250,7 +249,6 @@ func (watcher *Watcher) UnregisterPin(pin *Pin) {
 // Watch the pin for changes to level.
 // The edge determines which edge to watch.
 // There can only be one watcher on the pin at a time.
-// If multiple watches are added, only the last one is honoured.
 func (pin *Pin) Watch(edge Edge, handler func(*Pin)) error {
 	watcher := getDefaultWatcher()
 	return watcher.RegisterPin(pin, edge, handler)
