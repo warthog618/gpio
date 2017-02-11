@@ -26,18 +26,9 @@ const (
 )
 
 type interrupt struct {
-	pin            *Pin
-	initialTrigger bool
-	handler        func(*Pin)
-	valueFile      *os.File
-}
-
-func (i *interrupt) trigger() {
-	if !i.initialTrigger {
-		i.initialTrigger = true
-		return
-	}
-	i.handler(i.pin)
+	pin       *Pin
+	handler   func(*Pin)
+	valueFile *os.File
 }
 
 type Watcher struct {
@@ -85,14 +76,14 @@ func NewWatcher() *Watcher {
 			}
 			irqs := make([]*interrupt, 0, n)
 			watcher.mu.Lock()
-			for i := 0; i < n; i++ {
-				if irq, ok := watcher.interrupts[int(epollEvents[i].Fd)]; ok {
+			for _, event := range epollEvents {
+				if irq, ok := watcher.interrupts[int(event.Fd)]; ok {
 					irqs = append(irqs, irq)
 				}
 			}
 			watcher.mu.Unlock()
-			for i := 0; i < len(irqs); i++ {
-				irqs[i].trigger()
+			for _, irq := range irqs {
+				irq.handler(irq.pin)
 			}
 		}
 	}()
@@ -247,6 +238,8 @@ func (watcher *Watcher) UnregisterPin(pin *Pin) {
 }
 
 // Watch the pin for changes to level.
+// The handler is called immediately, to allow the handler to initialise its state
+// with the current level, and then on the specified edges.
 // The edge determines which edge to watch.
 // There can only be one watcher on the pin at a time.
 func (pin *Pin) Watch(edge Edge, handler func(*Pin)) error {

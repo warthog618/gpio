@@ -47,11 +47,20 @@ func TestRegister(t *testing.T) {
 	pinIn, pinOut, watcher := setup_intr(t)
 	defer teardown_intr(pinIn, pinOut)
 	ich := make(chan int)
+	count := 0
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
-		ich <- 1
+		count++
+		ich <- count
 	})
 	if err != nil {
 		t.Fatal("Registration failed", err)
+	}
+	val, err := waitInterrupt(ich, time.Millisecond)
+	if err != nil {
+		t.Error("No initial interrupt")
+	}
+	if val != 1 {
+		t.Error("Incorrect count", val)
 	}
 	_, err = waitInterrupt(ich, time.Millisecond)
 	if err == nil {
@@ -68,8 +77,12 @@ func TestReregister(t *testing.T) {
 	}); err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	if _, err := waitInterrupt(ich, time.Millisecond); err == nil {
-		t.Error("Spurious interrupt")
+	val, err := waitInterrupt(ich, time.Millisecond)
+	if err != nil {
+		t.Error("No initial interrupt")
+	}
+	if val != 1 {
+		t.Error("Incorrect count", val)
 	}
 	if err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 2
@@ -77,7 +90,7 @@ func TestReregister(t *testing.T) {
 		t.Fatal("Reregistration didn't fail.")
 	}
 	pinOut.High()
-	val, err := waitInterrupt(ich, time.Millisecond)
+	val, err = waitInterrupt(ich, time.Millisecond)
 	switch {
 	case err != nil:
 		t.Error("Didn't call handler")
@@ -96,9 +109,12 @@ func TestUnregister(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	_, err = waitInterrupt(ich, time.Millisecond)
-	if err == nil {
-		t.Error("Spurious interrupt")
+	val, err := waitInterrupt(ich, time.Millisecond)
+	if err != nil {
+		t.Error("No initial interrupt")
+	}
+	if val != 1 {
+		t.Error("Incorrect count", val)
 	}
 	watcher.UnregisterPin(pinIn)
 	pinOut.High()
@@ -123,6 +139,13 @@ func TestEdgeRising(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal("Registration failed", err)
+	}
+	val, err := waitInterrupt(ich, time.Millisecond)
+	if err != nil {
+		t.Error("No initial interrupt")
+	}
+	if val != 0 {
+		t.Error("Incorrect initial value", val)
 	}
 	// Can take a while for the init to be applied before it starts triggering
 	// interrupts, so wait a bit...
@@ -157,6 +180,13 @@ func TestEdgeFalling(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
+	val, err := waitInterrupt(ich, time.Millisecond)
+	if err != nil {
+		t.Error("No initial interrupt")
+	}
+	if val != 0 {
+		t.Error("Incorrect initial value", val)
+	}
 	for i := 0; i < 10; i++ {
 		pinOut.High()
 		val, err := waitInterrupt(ich, time.Millisecond)
@@ -187,9 +217,13 @@ func TestEdgeBoth(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	// Can take a while for the init to be applied before it starts triggering
-	// interrupts, so wait a bit...
-	time.Sleep(time.Millisecond)
+	val, err := waitInterrupt(ich, time.Millisecond)
+	if err != nil {
+		t.Error("No initial interrupt")
+	}
+	if val != 0 {
+		t.Error("Incorrect initial value", val)
+	}
 	for i := 0; i < 10; i++ {
 		pinOut.High()
 		val, err := waitInterrupt(ich, time.Millisecond)
@@ -221,6 +255,13 @@ func TestEdgeNone(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal("Registration failed", err)
+	}
+	val, err := waitInterrupt(ich, time.Millisecond)
+	if err != nil {
+		t.Error("No initial interrupt")
+	}
+	if val != 0 {
+		t.Error("Incorrect initial value", val)
 	}
 	for i := 0; i < 10; i++ {
 		pinOut.High()
@@ -278,20 +319,20 @@ func TestWatchExists(t *testing.T) {
 	pinIn := NewPin(J8_15)
 	defer teardown_intr(nil, pinIn)
 	pinIn.SetMode(Input)
-	called := false
+	count := 0
 	if err := pinIn.Watch(EdgeFalling, func(pin *Pin) {
-		called = true
+		count++
 	}); err != nil {
 		t.Fatal("Watch returned error", err)
 	}
 	if err := pinIn.Watch(EdgeFalling, func(pin *Pin) {
-		called = true
+		count++
 	}); err == nil {
 		t.Error("Watch didn't return error")
 	}
 	time.Sleep(2 * time.Millisecond)
-	if called {
-		t.Error("Handler called")
+	if count != 1 {
+		t.Error("Second handler called")
 	}
 }
 
@@ -318,6 +359,11 @@ func TestWatchLooped(t *testing.T) {
 	}); err != nil {
 		t.Fatal("Watch returned error", err)
 	}
+	time.Sleep(2 * time.Millisecond)
+	if called == false {
+		t.Error("Watcher not called with initial value.")
+	}
+	called = false
 	pinOut.High()
 	time.Sleep(2 * time.Millisecond)
 	if called {
