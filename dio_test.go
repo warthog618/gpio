@@ -1,21 +1,26 @@
-/*
-  Test suite for dio module.
+// Copyright © 2017 Kent Gibson <warthog618@gmail.com>.
+//
+// Use of this source code is governed by an MIT-style
+// license that can be found in the LICENSE file.
 
-	Tests use J8 pins 7 (mostly) and 15 and 16 (for looped tests)
-*/
+//
+//  Test suite for dio module.
+//
+//	Tests use J8 pins 7 (mostly) and 15 and 16 (for looped tests)
+//
 package gpio
 
 import (
 	"testing"
 )
 
-func setup_dio(t *testing.T) {
+func setupDIO(t *testing.T) {
 	if err := Open(); err != nil {
 		t.Fatal("Open returned error", err)
 	}
 }
 
-func teardown_dio() {
+func teardownDIO() {
 	Close()
 }
 
@@ -25,7 +30,7 @@ func TestUninitialisedPanic(t *testing.T) {
 			t.Errorf("NewPin did not panic")
 		}
 	}()
-	p := NewPin(J8_7)
+	p := NewPin(J8p7)
 	_ = p
 }
 
@@ -35,16 +40,16 @@ func TestClosedPanic(t *testing.T) {
 			t.Errorf("NewPin did not panic")
 		}
 	}()
-	setup_dio(t)
-	teardown_dio()
-	p := NewPin(J8_7)
+	setupDIO(t)
+	teardownDIO()
+	p := NewPin(J8p7)
 	_ = p
 }
 
 func TestRead(t *testing.T) {
-	setup_dio(t)
-	defer teardown_dio()
-	pin := NewPin(J8_7)
+	setupDIO(t)
+	defer teardownDIO()
+	pin := NewPin(J8p7)
 	// A basic read test - assuming the pin is input and pulled high
 	// which is the default state for this pin on a Pi.
 	mode := pin.Mode()
@@ -59,9 +64,9 @@ func TestRead(t *testing.T) {
 }
 
 func TestMode(t *testing.T) {
-	setup_dio(t)
-	defer teardown_dio()
-	pin := NewPin(J8_7)
+	setupDIO(t)
+	defer teardownDIO()
+	pin := NewPin(J8p7)
 	mode := pin.Mode()
 	if mode != Input {
 		t.Fatal("Not an input pin")
@@ -89,9 +94,9 @@ func TestMode(t *testing.T) {
 }
 
 func TestPull(t *testing.T) {
-	setup_dio(t)
-	defer teardown_dio()
-	pin := NewPin(J8_7)
+	setupDIO(t)
+	defer teardownDIO()
+	pin := NewPin(J8p7)
 	defer pin.PullUp()
 	// A basic read test - using the pull up/down to drive he pin.
 	mode := pin.Mode()
@@ -118,9 +123,9 @@ func TestPull(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	setup_dio(t)
-	defer teardown_dio()
-	pin := NewPin(J8_7)
+	setupDIO(t)
+	defer teardownDIO()
+	pin := NewPin(J8p7)
 	mode := pin.Mode()
 	if mode != Input {
 		t.Error("Not an input pin")
@@ -167,10 +172,10 @@ func TestWrite(t *testing.T) {
 
 // Looped tests require a jumper across Raspberry Pi J8 pins 15 and 16.
 func TestWriteLooped(t *testing.T) {
-	setup_dio(t)
-	defer teardown_dio()
-	pinIn := NewPin(J8_15)
-	pinOut := NewPin(J8_16)
+	setupDIO(t)
+	defer teardownDIO()
+	pinIn := NewPin(J8p15)
+	pinOut := NewPin(J8p16)
 	pinIn.SetMode(Input)
 	defer pinOut.SetMode(Input)
 	pinOut.Write(Low)
@@ -189,9 +194,9 @@ func TestWriteLooped(t *testing.T) {
 }
 
 func TestToggle(t *testing.T) {
-	setup_dio(t)
-	defer teardown_dio()
-	pin := NewPin(J8_7)
+	setupDIO(t)
+	defer teardownDIO()
+	pin := NewPin(J8p7)
 	defer pin.SetMode(Input)
 	pin.Write(Low)
 	pin.SetMode(Output)
@@ -220,10 +225,10 @@ func TestToggle(t *testing.T) {
 
 // Looped tests require a jumper across Raspberry Pi J8 pins 15 and 16.
 func TestToggleLooped(t *testing.T) {
-	setup_dio(t)
-	defer teardown_dio()
-	pinIn := NewPin(J8_15)
-	pinOut := NewPin(J8_16)
+	setupDIO(t)
+	defer teardownDIO()
+	pinIn := NewPin(J8p15)
+	pinOut := NewPin(J8p16)
 	pinIn.SetMode(Input)
 	defer pinOut.SetMode(Input)
 	pinOut.Write(Low)
@@ -251,7 +256,7 @@ func BenchmarkRead(b *testing.B) {
 		b.Fatal("Open returned error", err)
 	}
 	defer Close()
-	pin := NewPin(J8_7)
+	pin := NewPin(J8p7)
 	for i := 0; i < b.N; i++ {
 		_ = pin.Read()
 	}
@@ -263,7 +268,7 @@ func BenchmarkWrite(b *testing.B) {
 		b.Fatal("Open returned error", err)
 	}
 	defer Close()
-	pin := NewPin(J8_7)
+	pin := NewPin(J8p7)
 	for i := 0; i < b.N; i++ {
 		pin.Write(High)
 	}
@@ -275,7 +280,7 @@ func BenchmarkToggle(b *testing.B) {
 		b.Fatal("Open returned error", err)
 	}
 	defer Close()
-	pin := NewPin(J8_7)
+	pin := NewPin(J8p7)
 	defer pin.SetMode(Input)
 	pin.Write(Low)
 	pin.SetMode(Output)
@@ -290,7 +295,7 @@ func BenchmarkSysfsRead(b *testing.B) {
 		b.Fatal("Open returned error", err)
 	}
 	defer Close()
-	pin := NewPin(J8_7)
+	pin := NewPin(J8p7)
 	// setup sysfs
 	err = export(pin)
 	if err != nil {
@@ -315,7 +320,7 @@ func BenchmarkSysfsWrite(b *testing.B) {
 		b.Fatal("Open returned error", err)
 	}
 	defer Close()
-	pin := NewPin(J8_7)
+	pin := NewPin(J8p7)
 	// setup sysfs
 	err = export(pin)
 	if err != nil {
@@ -339,7 +344,7 @@ func BenchmarkSysfsToggle(b *testing.B) {
 		b.Fatal("Open returned error", err)
 	}
 	defer Close()
-	pin := NewPin(J8_7)
+	pin := NewPin(J8p7)
 	// setup sysfs
 	err = export(pin)
 	if err != nil {

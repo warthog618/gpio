@@ -13,16 +13,22 @@ import (
 )
 
 const (
+	// MaxGPIOInterrupt is the maximum pin number.
 	MaxGPIOInterrupt = 54
 )
 
+// Edge represents the change in Pin level that triggers an interrupt.
 type Edge string
 
 const (
-	EdgeNone    Edge = "none"
-	EdgeRising  Edge = "rising"
+	// EdgeNone indicates no level transitions will trigger an interrupt
+	EdgeNone Edge = "none"
+	// EdgeRising indicates an interrupt is triggered when the pin transitions from low to high.
+	EdgeRising Edge = "rising"
+	// EdgeFalling indicates an interrupt is triggered when the pin transitions from high to low.
 	EdgeFalling Edge = "falling"
-	EdgeBoth    Edge = "both"
+	// EdgeBoth indicates an interrupt is triggered when the pin changes level.
+	EdgeBoth Edge = "both"
 )
 
 type interrupt struct {
@@ -31,9 +37,10 @@ type interrupt struct {
 	valueFile *os.File
 }
 
+// Watcher monitors the pins for level transitions that trigger interrupts.
 type Watcher struct {
-	mu sync.Mutex // Guards the following, and sysfs interactions.
-	Fd int
+	sync.Mutex // Guards the following, and sysfs interactions.
+	Fd         int
 	// Map from pin to value Fd.
 	interruptFds map[uint8]int
 	// Map from pin Fd to interrupt
@@ -49,6 +56,7 @@ func getDefaultWatcher() *Watcher {
 	return defaultWatcher
 }
 
+// NewWatcher creates a goroutine that watches Pins for transitions that trigger interrupts.
 func NewWatcher() *Watcher {
 	Fd, err := syscall.EpollCreate1(0)
 	if err != nil {
@@ -75,13 +83,13 @@ func NewWatcher() *Watcher {
 				panic(fmt.Sprintf("EpollWait error: %v", err))
 			}
 			irqs := make([]*interrupt, 0, n)
-			watcher.mu.Lock()
+			watcher.Lock()
 			for _, event := range epollEvents {
 				if irq, ok := watcher.interrupts[int(event.Fd)]; ok {
 					irqs = append(irqs, irq)
 				}
 			}
-			watcher.mu.Unlock()
+			watcher.Unlock()
 			for _, irq := range irqs {
 				irq.handler(irq.pin)
 			}
@@ -99,11 +107,11 @@ func closeInterrupts() {
 	watcher.Close()
 }
 
-// His watch has ended.
+// Close - His watch has ended.
 func (watcher *Watcher) Close() {
 	syscall.Close(watcher.Fd)
-	watcher.mu.Lock()
-	defer watcher.mu.Unlock()
+	watcher.Lock()
+	defer watcher.Unlock()
 
 	for fd := range watcher.interrupts {
 		intr := watcher.interrupts[fd]
@@ -131,13 +139,12 @@ func waitWriteable(path string) error {
 		if err == nil && fileInfo.Mode()&0x10 != 0 {
 			return nil
 		}
-		try += 1
+		try++
 		if try > 10 {
 			return errors.New("timeout")
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	return nil
 }
 
 func export(pin *Pin) error {
@@ -183,11 +190,12 @@ func setEdge(pin *Pin, edge Edge) error {
 	return err
 }
 
+// RegisterPin creates a watch on the given pin.
 // The pin can only be registered once.  Subsequent registers,
 // without an Unregister, will return an error.
 func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) error {
-	watcher.mu.Lock()
-	defer watcher.mu.Unlock()
+	watcher.Lock()
+	defer watcher.Unlock()
 
 	_, ok := watcher.interruptFds[pin.pin]
 	if ok {
@@ -218,9 +226,10 @@ func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) err
 	return nil
 }
 
+// UnregisterPin removes any watch on the Pin.
 func (watcher *Watcher) UnregisterPin(pin *Pin) {
-	watcher.mu.Lock()
-	defer watcher.mu.Unlock()
+	watcher.Lock()
+	defer watcher.Unlock()
 
 	pinFd, ok := watcher.interruptFds[pin.pin]
 	if !ok {
@@ -247,7 +256,7 @@ func (pin *Pin) Watch(edge Edge, handler func(*Pin)) error {
 	return watcher.RegisterPin(pin, edge, handler)
 }
 
-// Remove any watch from the pin.
+// Unwatch removes any watch from the pin.
 func (pin *Pin) Unwatch() {
 	watcher := getDefaultWatcher()
 	watcher.UnregisterPin(pin)

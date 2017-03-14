@@ -1,46 +1,50 @@
-/*
+// Copyright © 2017 Kent Gibson <warthog618@gmail.com>.
+//
+// Use of this source code is governed by an MIT-style
+// license that can be found in the LICENSE file.
 
-Package gpio provides GPIO access on the Raspberry Pi (rev 2 and later).
-
-Supports simple operations such as:
-- Pin mode/direction (input/output)
-- Pin write (high/low)
-- Pin read (high/low)
-- Pull up/down/off
-
-The package intentionally does not support:
- - the obsoleted rev 1 PCB (no longer worth the effort)
- - active low (to prevent confusion this package reflects only the actual hardware levels)
-
-Example of use:
-
-	gpio.Open()
-	defer gpio.Close()
-
-	pin := gpio.NewPin(gpio.J8_7)
-	pin.Low()
-	pin.Output()
-
-	for {
-		pin.Toggle()
-		time.Sleep(time.Second)
-	}
-
-The library uses the raw BCM2835 pin numbers, not the ports as they are mapped
-on the J8 output pins for the Raspberry Pi.
-A mapping from J8 to BCM is provided for those wanting to use the J8 numbering.
-
-See the spec for full details of the BCM2835 controller:
-http://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
-
-*/
-
+//
+//
+// Package gpio provides GPIO access on the Raspberry Pi (rev 2 and later).
+//
+// Supports simple operations such as:
+// - Pin mode/direction (input/output)
+// - Pin write (high/low)
+// - Pin read (high/low)
+// - Pull up/down/off
+//
+// The package intentionally does not support:
+//  - the obsoleted rev 1 PCB (no longer worth the effort)
+//  - active low (to prevent confusion this package reflects only the actual hardware levels)
+//
+// Example of use:
+//
+// 	gpio.Open()
+// 	defer gpio.Close()
+//
+// 	pin := gpio.NewPin(gpio.J8p7)
+// 	pin.Low()
+// 	pin.Output()
+//
+// 	for {
+// 		pin.Toggle()
+// 		time.Sleep(time.Second)
+// 	}
+//
+// The library uses the raw BCM2835 pin numbers, not the ports as they are mapped
+// on the J8 output pins for the Raspberry Pi.
+// A mapping from J8 to BCM is provided for those wanting to use the J8 numbering.
+//
+// See the spec for full details of the BCM2835 controller:
+// http://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
+//
 package gpio
 
 import (
 	"time"
 )
 
+// Pin represents a single GPIO pin.
 type Pin struct {
 	// Immutable fields
 	pin      uint8
@@ -53,8 +57,14 @@ type Pin struct {
 	// Mutable fields
 	shadow Level
 }
+
+// Level represents the high (true) or low (false) level of a Pin.
 type Level bool
+
+// Mode defines the IO mode of a Pin.
 type Mode uint8
+
+// Pull defines the pull up/down state of a Pin.
 type Pull uint8
 
 const (
@@ -94,37 +104,38 @@ const (
 
 // Convenience mapping from J8 pinouts to BCM pinouts.
 const (
-	J8_27 = iota
-	J8_28
-	J8_3
-	J8_5
-	J8_7
-	J8_29
-	J8_31
-	J8_26
-	J8_24
-	J8_21
-	J8_19
-	J8_23
-	J8_32
-	J8_33
-	J8_8
-	J8_10
-	J8_36
-	J8_11
-	J8_12
-	J8_35
-	J8_38
-	J8_40
-	J8_15
-	J8_16
-	J8_18
-	J8_22
-	J8_37
-	J8_13
+	J8p27 = iota
+	J8p28
+	J8p3
+	J8p5
+	J8p7
+	J8p29
+	J8p31
+	J8p26
+	J8p24
+	J8p21
+	J8p19
+	J8p23
+	J8p32
+	J8p33
+	J8p8
+	J8p10
+	J8p36
+	J8p11
+	J8p12
+	J8p35
+	J8p38
+	J8p40
+	J8p15
+	J8p16
+	J8p18
+	J8p22
+	J8p37
+	J8p13
 )
 
-// Create a new pin object.  The pin number provided is the BCM GPIO number.
+// NewPin creates a new pin object.
+// The pin number provided is the BCM GPIO number.
 func NewPin(pin uint8) *Pin {
 	if len(mem) == 0 {
 		panic("GPIO not initialised.")
@@ -151,34 +162,34 @@ func NewPin(pin uint8) *Pin {
 		levelReg: levelReg, clearReg: clearReg, setReg: setReg, shadow: shadow}
 }
 
-// Set pin as Input
+// Input sets pin as Input.
 func (pin *Pin) Input() {
 	pin.SetMode(Input)
 }
 
-// Set pin as Output
+// Output sets pin as Output.
 func (pin *Pin) Output() {
 	pin.SetMode(Output)
 }
 
-// Set pin High
+// High sets pin High.
 func (pin *Pin) High() {
 	pin.Write(High)
 }
 
-// Set pin Low
+// Low sets pin Low.
 func (pin *Pin) Low() {
 	pin.Write(Low)
 }
 
-// The mode of the pin in the Function Select register.
+// Mode returns the mode of the pin in the Function Select register.
 func (pin *Pin) Mode() Mode {
 	// read Mode and current value
 	modeShift := (pin.pin % 10) * 3
 	return Mode(mem[pin.fsel] >> modeShift & modeMask)
 }
 
-// The value of the last write to an output pin or the last read on an input pin.
+// Shadow returns the value of the last write to an output pin or the last read on an input pin.
 func (pin *Pin) Shadow() Level {
 	return pin.shadow
 }
@@ -192,7 +203,7 @@ func (pin *Pin) Toggle() {
 	}
 }
 
-// Set pin Mode
+// SetMode sets the pin Mode.
 func (pin *Pin) SetMode(mode Mode) {
 	// shift for pin mode field within fsel register.
 	modeShift := (pin.pin % 10) * 3
@@ -222,7 +233,7 @@ func (pin *Pin) Write(level Level) {
 	pin.shadow = level
 }
 
-// Set a given pull up/down mode
+// SetPull sets the pull up/down mode for a Pin.
 // Unlike the mode, the pull value cannot be read back from hardware and
 // so must be remembered by the caller.
 func (pin *Pin) SetPull(pull Pull) {
@@ -243,17 +254,17 @@ func (pin *Pin) SetPull(pull Pull) {
 	mem[pullClkReg] = 0
 }
 
-// Pull up pin
+// PullUp sets the pull state of the pin to PullUp.
 func (pin *Pin) PullUp() {
 	pin.SetPull(PullUp)
 }
 
-// Pull down pin
+// PullDown sets the pull state of the Pin to PullDown.
 func (pin *Pin) PullDown() {
 	pin.SetPull(PullDown)
 }
 
-// Disable pullup/down on pin
+// PullNone disables pullup/down on pin, leaving it floating.
 func (pin *Pin) PullNone() {
 	pin.SetPull(PullNone)
 }

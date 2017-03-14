@@ -1,8 +1,13 @@
-/*
-  Test suite for interrupt module.
+// Copyright © 2017 Kent Gibson <warthog618@gmail.com>.
+//
+// Use of this source code is governed by an MIT-style
+// license that can be found in the LICENSE file.
 
-	Tests use J8 pins 15 and 16 which must be jumpered together.
-*/
+//
+// Test suite for interrupt module.
+//
+// Tests use Raspberry Pi J8 pins 15 and 16 which must be jumpered together.
+//
 package gpio
 
 import (
@@ -18,19 +23,19 @@ func waitInterrupt(ch chan int, timeout time.Duration) (int, error) {
 		close(expired)
 	}()
 	select {
-	case val := <-ch:
-		return val, nil
+	case v := <-ch:
+		return v, nil
 	case <-expired:
 		return 0, errors.New("timeout")
 	}
 }
 
-func setup_intr(t *testing.T) (pinIn *Pin, pinOut *Pin, watcher *Watcher) {
+func setupIntr(t *testing.T) (pinIn *Pin, pinOut *Pin, watcher *Watcher) {
 	if err := Open(); err != nil {
 		t.Fatal("Open returned error", err)
 	}
-	pinIn = NewPin(J8_15)
-	pinOut = NewPin(J8_16)
+	pinIn = NewPin(J8p15)
+	pinOut = NewPin(J8p16)
 	watcher = getDefaultWatcher()
 	pinIn.SetMode(Input)
 	pinOut.Write(Low)
@@ -38,14 +43,14 @@ func setup_intr(t *testing.T) (pinIn *Pin, pinOut *Pin, watcher *Watcher) {
 	return
 }
 
-func teardown_intr(pinIn *Pin, pinOut *Pin) {
+func teardownIntr(pinIn *Pin, pinOut *Pin) {
 	pinOut.SetMode(Input)
 	Close()
 }
 
 func TestRegister(t *testing.T) {
-	pinIn, pinOut, watcher := setup_intr(t)
-	defer teardown_intr(pinIn, pinOut)
+	pinIn, pinOut, watcher := setupIntr(t)
+	defer teardownIntr(pinIn, pinOut)
 	ich := make(chan int)
 	count := 0
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
@@ -55,12 +60,12 @@ func TestRegister(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	val, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
-	if val != 1 {
-		t.Error("Incorrect count", val)
+	if v != 1 {
+		t.Error("Incorrect count", v)
 	}
 	_, err = waitInterrupt(ich, time.Millisecond)
 	if err == nil {
@@ -69,39 +74,39 @@ func TestRegister(t *testing.T) {
 }
 
 func TestReregister(t *testing.T) {
-	pinIn, pinOut, watcher := setup_intr(t)
-	defer teardown_intr(pinIn, pinOut)
+	pinIn, pinOut, watcher := setupIntr(t)
+	defer teardownIntr(pinIn, pinOut)
 	ich := make(chan int)
 	if err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 1
 	}); err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	val, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
-	if val != 1 {
-		t.Error("Incorrect count", val)
+	if v != 1 {
+		t.Error("Incorrect count", v)
 	}
-	if err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
+	if err = watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 2
 	}); err == nil {
 		t.Fatal("Reregistration didn't fail.")
 	}
 	pinOut.High()
-	val, err = waitInterrupt(ich, time.Millisecond)
+	v, err = waitInterrupt(ich, time.Millisecond)
 	switch {
 	case err != nil:
 		t.Error("Didn't call handler")
-	case val != 1:
+	case v != 1:
 		t.Error("Called new handler")
 	}
 }
 
 func TestUnregister(t *testing.T) {
-	pinIn, pinOut, watcher := setup_intr(t)
-	defer teardown_intr(pinIn, pinOut)
+	pinIn, pinOut, watcher := setupIntr(t)
+	defer teardownIntr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 1
@@ -109,12 +114,12 @@ func TestUnregister(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	val, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
-	if val != 1 {
-		t.Error("Incorrect count", val)
+	if v != 1 {
+		t.Error("Incorrect count", v)
 	}
 	watcher.UnregisterPin(pinIn)
 	pinOut.High()
@@ -127,8 +132,8 @@ func TestUnregister(t *testing.T) {
 }
 
 func TestEdgeRising(t *testing.T) {
-	pinIn, pinOut, watcher := setup_intr(t)
-	defer teardown_intr(pinIn, pinOut)
+	pinIn, pinOut, watcher := setupIntr(t)
+	defer teardownIntr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		if pin.Read() == High {
@@ -140,26 +145,26 @@ func TestEdgeRising(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	val, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
-	if val != 0 {
-		t.Error("Incorrect initial value", val)
+	if v != 0 {
+		t.Error("Incorrect initial value", v)
 	}
 	// Can take a while for the init to be applied before it starts triggering
 	// interrupts, so wait a bit...
 	time.Sleep(time.Millisecond)
 	for i := 0; i < 10; i++ {
 		pinOut.High()
-		val, err := waitInterrupt(ich, time.Millisecond)
+		v, err := waitInterrupt(ich, time.Millisecond)
 		if err != nil {
 			t.Error("Missed high at", i)
-		} else if val == 0 {
+		} else if v == 0 {
 			t.Error("Triggered while low at", i)
 		}
 		pinOut.Low()
-		val, err = waitInterrupt(ich, time.Millisecond)
+		_, err = waitInterrupt(ich, time.Millisecond)
 		if err == nil {
 			t.Error("Spurious or delayed trigger at", i)
 		}
@@ -167,8 +172,8 @@ func TestEdgeRising(t *testing.T) {
 }
 
 func TestEdgeFalling(t *testing.T) {
-	pinIn, pinOut, watcher := setup_intr(t)
-	defer teardown_intr(pinIn, pinOut)
+	pinIn, pinOut, watcher := setupIntr(t)
+	defer teardownIntr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeFalling, func(pin *Pin) {
 		if pin.Read() == High {
@@ -180,32 +185,32 @@ func TestEdgeFalling(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	val, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
-	if val != 0 {
-		t.Error("Incorrect initial value", val)
+	if v != 0 {
+		t.Error("Incorrect initial value", v)
 	}
 	for i := 0; i < 10; i++ {
 		pinOut.High()
-		val, err := waitInterrupt(ich, time.Millisecond)
+		_, err := waitInterrupt(ich, time.Millisecond)
 		if err == nil {
 			t.Error("Spurious or delayed trigger at", i)
 		}
 		pinOut.Low()
-		val, err = waitInterrupt(ich, time.Millisecond)
+		v, err = waitInterrupt(ich, time.Millisecond)
 		if err != nil {
 			t.Error("Missed low at", i)
-		} else if val == 1 {
+		} else if v == 1 {
 			t.Error("Triggered while low at", i)
 		}
 	}
 }
 
 func TestEdgeBoth(t *testing.T) {
-	pinIn, pinOut, watcher := setup_intr(t)
-	defer teardown_intr(pinIn, pinOut)
+	pinIn, pinOut, watcher := setupIntr(t)
+	defer teardownIntr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeBoth, func(pin *Pin) {
 		if pin.Read() == High {
@@ -217,34 +222,34 @@ func TestEdgeBoth(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	val, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
-	if val != 0 {
-		t.Error("Incorrect initial value", val)
+	if v != 0 {
+		t.Error("Incorrect initial value", v)
 	}
 	for i := 0; i < 10; i++ {
 		pinOut.High()
-		val, err := waitInterrupt(ich, time.Millisecond)
+		v, err := waitInterrupt(ich, time.Millisecond)
 		if err != nil {
 			t.Error("Missed high at", i)
-		} else if val == 0 {
+		} else if v == 0 {
 			t.Error("Triggered while low at", i)
 		}
 		pinOut.Low()
-		val, err = waitInterrupt(ich, time.Millisecond)
+		v, err = waitInterrupt(ich, time.Millisecond)
 		if err != nil {
 			t.Error("Missed low at", i)
-		} else if val == 1 {
+		} else if v == 1 {
 			t.Error("Triggered while high at", i)
 		}
 	}
 }
 
 func TestEdgeNone(t *testing.T) {
-	pinIn, pinOut, watcher := setup_intr(t)
-	defer teardown_intr(pinIn, pinOut)
+	pinIn, pinOut, watcher := setupIntr(t)
+	defer teardownIntr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeNone, func(pin *Pin) {
 		if pin.Read() == High {
@@ -256,39 +261,39 @@ func TestEdgeNone(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	val, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
-	if val != 0 {
-		t.Error("Incorrect initial value", val)
+	if v != 0 {
+		t.Error("Incorrect initial value", v)
 	}
 	for i := 0; i < 10; i++ {
 		pinOut.High()
-		val, err := waitInterrupt(ich, time.Millisecond)
+		v, err := waitInterrupt(ich, time.Millisecond)
 		if err == nil {
-			t.Error("Spurious or delayed trigger at", i, val)
+			t.Error("Spurious or delayed trigger at", i, v)
 		}
 		pinOut.Low()
-		val, err = waitInterrupt(ich, time.Millisecond)
+		v, err = waitInterrupt(ich, time.Millisecond)
 		if err == nil {
-			t.Error("Spurious or delayed trigger at", i, val)
+			t.Error("Spurious or delayed trigger at", i, v)
 		}
 	}
 }
 
 func TestUnexportedEdge(t *testing.T) {
-	pinIn, pinOut, _ := setup_intr(t)
+	pinIn, pinOut, _ := setupIntr(t)
 	err := setEdge(pinIn, EdgeNone)
 	if err == nil {
 		t.Error("Edge should fail unless pin exported first.")
 	}
-	defer teardown_intr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut)
 }
 
 func TestCloseInterrupts(t *testing.T) {
-	pinIn, pinOut, watcher := setup_intr(t)
-	defer teardown_intr(pinIn, pinOut)
+	pinIn, pinOut, watcher := setupIntr(t)
+	defer teardownIntr(pinIn, pinOut)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeNone, func(pin *Pin) {
 		if pin.Read() == High {
@@ -301,14 +306,14 @@ func TestCloseInterrupts(t *testing.T) {
 		t.Fatal("Registration failed", err)
 	}
 	closeInterrupts()
-	val, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, time.Millisecond)
 	if err == nil {
-		t.Error("Spurious interrupt during close", val)
+		t.Error("Spurious interrupt during close", v)
 	}
 	pinOut.High()
-	val, err = waitInterrupt(ich, time.Millisecond)
+	v, err = waitInterrupt(ich, time.Millisecond)
 	if err == nil {
-		t.Error("Interrupts still active after close", val)
+		t.Error("Interrupts still active after close", v)
 	}
 }
 
@@ -316,8 +321,8 @@ func TestWatchExists(t *testing.T) {
 	if err := Open(); err != nil {
 		t.Fatal("Open returned error", err)
 	}
-	pinIn := NewPin(J8_15)
-	defer teardown_intr(nil, pinIn)
+	pinIn := NewPin(J8p15)
+	defer teardownIntr(nil, pinIn)
 	pinIn.SetMode(Input)
 	count := 0
 	if err := pinIn.Watch(EdgeFalling, func(pin *Pin) {
@@ -343,8 +348,8 @@ func TestWatchLooped(t *testing.T) {
 		t.Fatal("Open returned error", err)
 	}
 	defer Close()
-	pinIn := NewPin(J8_15)
-	pinOut := NewPin(J8_16)
+	pinIn := NewPin(J8p15)
+	pinOut := NewPin(J8p16)
 	pinIn.SetMode(Input)
 	defer pinOut.SetMode(Input)
 	pinOut.Write(Low)
@@ -394,8 +399,8 @@ func BenchmarkInterruptLatency(b *testing.B) {
 		b.Fatal("Open returned error", err)
 	}
 	defer Close()
-	pinIn := NewPin(J8_15)
-	pinOut := NewPin(J8_16)
+	pinIn := NewPin(J8p15)
+	pinOut := NewPin(J8p16)
 	pinIn.SetMode(Input)
 	defer pinOut.SetMode(Input)
 	pinOut.Write(Low)

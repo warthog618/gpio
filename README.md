@@ -42,11 +42,11 @@ A Pin object is constructed using the *NewPin* function.
 The Pin object is then used for all operations on that pin.
 Note that the pin number refers to the BCM GPIO pin, not the physical pin on the Raspberry Pi header.
 Pin 4 here is exposed on the pin header as physical pin 7 (J8 7).
-Mappings are provided from Raspberry Pi J8 header pin names to BCM GPIO numbers, using the form J8_X.
+Mappings are provided from Raspberry Pi J8 header pin names to BCM GPIO numbers, using the form J8pX.
 
 ```go
 pin := gpio.NewPin(4)
-pin := gpio.NewPin(gpio.J8_7) // Using Raspberry Pi J8 mapping.
+pin := gpio.NewPin(gpio.J8p7) // Using Raspberry Pi J8 mapping.
 ```
 
 There is no need to cleanup a pin if you no longer need to use it, unless it has Watches set in which case you should remove the *Watch*.
