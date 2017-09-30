@@ -155,7 +155,7 @@ func export(pin *Pin) error {
 	defer file.Close()
 	_, err = file.WriteString(strconv.Itoa(int(pin.pin)))
 	if e, ok := err.(*os.PathError); ok && e.Err == syscall.EBUSY {
-		return nil // EBUSY -> the pin has already been exported
+		return errors.New("pin already exported") // EBUSY -> the pin has already been exported
 	}
 	if err != nil {
 		return err
@@ -193,7 +193,7 @@ func setEdge(pin *Pin, edge Edge) error {
 // RegisterPin creates a watch on the given pin.
 // The pin can only be registered once.  Subsequent registers,
 // without an Unregister, will return an error.
-func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) error {
+func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) (err error) {
 	watcher.Lock()
 	defer watcher.Unlock()
 
@@ -201,10 +201,15 @@ func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) err
 	if ok {
 		return errors.New("watch already exists")
 	}
-	if err := export(pin); err != nil {
+	if err = export(pin); err != nil {
 		return err
 	}
-	if err := setEdge(pin, edge); err != nil {
+	defer func() {
+		if err != nil {
+			unexport(pin)
+		}
+	}()
+	if err = setEdge(pin, edge); err != nil {
 		return err
 	}
 	valueFile, err := openValue(pin)
@@ -214,7 +219,7 @@ func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) err
 	pinFd := int(valueFile.Fd())
 
 	event := syscall.EpollEvent{Events: syscall.EPOLLET & 0xffffffff}
-	if err := syscall.SetNonblock(pinFd, true); err != nil {
+	if err = syscall.SetNonblock(pinFd, true); err != nil {
 		return err
 	}
 	event.Fd = int32(pinFd)
