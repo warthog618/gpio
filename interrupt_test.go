@@ -43,14 +43,15 @@ func setupIntr(t *testing.T) (pinIn *Pin, pinOut *Pin, watcher *Watcher) {
 	return
 }
 
-func teardownIntr(pinIn *Pin, pinOut *Pin) {
+func teardownIntr(pinIn *Pin, pinOut *Pin, watcher *Watcher) {
 	pinOut.SetMode(Input)
+	watcher.UnregisterPin(pinIn)
 	Close()
 }
 
 func TestRegister(t *testing.T) {
 	pinIn, pinOut, watcher := setupIntr(t)
-	defer teardownIntr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut, watcher)
 	ich := make(chan int)
 	count := 0
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
@@ -75,7 +76,7 @@ func TestRegister(t *testing.T) {
 
 func TestReregister(t *testing.T) {
 	pinIn, pinOut, watcher := setupIntr(t)
-	defer teardownIntr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut, watcher)
 	ich := make(chan int)
 	if err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 1
@@ -106,7 +107,7 @@ func TestReregister(t *testing.T) {
 
 func TestUnregister(t *testing.T) {
 	pinIn, pinOut, watcher := setupIntr(t)
-	defer teardownIntr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut, watcher)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		ich <- 1
@@ -133,7 +134,7 @@ func TestUnregister(t *testing.T) {
 
 func TestEdgeRising(t *testing.T) {
 	pinIn, pinOut, watcher := setupIntr(t)
-	defer teardownIntr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut, watcher)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeRising, func(pin *Pin) {
 		if pin.Read() == High {
@@ -173,7 +174,7 @@ func TestEdgeRising(t *testing.T) {
 
 func TestEdgeFalling(t *testing.T) {
 	pinIn, pinOut, watcher := setupIntr(t)
-	defer teardownIntr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut, watcher)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeFalling, func(pin *Pin) {
 		if pin.Read() == High {
@@ -210,7 +211,7 @@ func TestEdgeFalling(t *testing.T) {
 
 func TestEdgeBoth(t *testing.T) {
 	pinIn, pinOut, watcher := setupIntr(t)
-	defer teardownIntr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut, watcher)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeBoth, func(pin *Pin) {
 		if pin.Read() == High {
@@ -249,7 +250,7 @@ func TestEdgeBoth(t *testing.T) {
 
 func TestEdgeNone(t *testing.T) {
 	pinIn, pinOut, watcher := setupIntr(t)
-	defer teardownIntr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut, watcher)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeNone, func(pin *Pin) {
 		if pin.Read() == High {
@@ -283,17 +284,17 @@ func TestEdgeNone(t *testing.T) {
 }
 
 func TestUnexportedEdge(t *testing.T) {
-	pinIn, pinOut, _ := setupIntr(t)
+	pinIn, pinOut, watcher := setupIntr(t)
 	err := setEdge(pinIn, EdgeNone)
 	if err == nil {
 		t.Error("Edge should fail unless pin exported first.")
 	}
-	defer teardownIntr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut, watcher)
 }
 
 func TestCloseInterrupts(t *testing.T) {
 	pinIn, pinOut, watcher := setupIntr(t)
-	defer teardownIntr(pinIn, pinOut)
+	defer teardownIntr(pinIn, pinOut, watcher)
 	ich := make(chan int)
 	err := watcher.RegisterPin(pinIn, EdgeNone, func(pin *Pin) {
 		if pin.Read() == High {
@@ -321,8 +322,8 @@ func TestWatchExists(t *testing.T) {
 	if err := Open(); err != nil {
 		t.Fatal("Open returned error", err)
 	}
+	defer Close()
 	pinIn := NewPin(J8p15)
-	defer teardownIntr(nil, pinIn)
 	pinIn.SetMode(Input)
 	count := 0
 	if err := pinIn.Watch(EdgeFalling, func(pin *Pin) {
