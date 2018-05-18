@@ -1,6 +1,8 @@
 gpio
 =======
 
+[![GoDoc](https://godoc.org/github.com/warthog618/gpio?status.svg)](https://godoc.org/github.com/warthog618/gpio)
+
 GPIO library for the Raspberry Pi.
 
 gpio is a Go library for accessing [GPIO](http://elinux.org/Rpi_Low-level_peripherals) pins on the [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi).
