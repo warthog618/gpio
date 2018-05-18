@@ -7,8 +7,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/warthog618/gpio"
 	"time"
+
+	"github.com/warthog618/gpio"
 )
 
 // Watches GPIO 4 (J8 7) and reports when it changes state.
@@ -18,7 +19,7 @@ func main() {
 		panic(err)
 	}
 	defer gpio.Close()
-	pin := gpio.NewPin(gpio.J8_7)
+	pin := gpio.NewPin(gpio.J8p7)
 	pin.Input()
 	pin.PullUp()
 	pin.Watch(gpio.EdgeBoth, func(pin *gpio.Pin) {

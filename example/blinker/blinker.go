@@ -7,10 +7,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/warthog618/gpio"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/warthog618/gpio"
 )
 
 // This example drives GPIO 4, which is pin J8 7.
@@ -22,7 +23,7 @@ func main() {
 		panic(err)
 	}
 	defer gpio.Close()
-	pin := gpio.NewPin(gpio.J8_7)
+	pin := gpio.NewPin(gpio.J8p7)
 	defer pin.Input()
 	pin.Output()
 	// capture exit signals to ensure pin is reverted to input on exit.
