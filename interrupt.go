@@ -17,6 +17,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -141,17 +142,14 @@ func waitExported(pin *Pin) error {
 
 func waitWriteable(path string) error {
 	try := 0
-	for {
-		fileInfo, err := os.Stat(path)
-		if err == nil && fileInfo.Mode()&0x10 != 0 {
-			return nil
-		}
+	for unix.Access(path, unix.W_OK) != nil {
 		try++
 		if try > 10 {
 			return ErrTimeout
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
+	return nil
 }
 
 func export(pin *Pin) error {
