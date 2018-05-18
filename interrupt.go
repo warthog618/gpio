@@ -141,7 +141,7 @@ func waitWriteable(path string) error {
 		}
 		try++
 		if try > 10 {
-			return errors.New("timeout")
+			return ErrTimeout
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
@@ -155,7 +155,7 @@ func export(pin *Pin) error {
 	defer file.Close()
 	_, err = file.WriteString(strconv.Itoa(int(pin.pin)))
 	if e, ok := err.(*os.PathError); ok && e.Err == syscall.EBUSY {
-		return errors.New("pin already exported") // EBUSY -> the pin has already been exported
+		return ErrBusy
 	}
 	if err != nil {
 		return err
@@ -199,7 +199,7 @@ func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) (er
 
 	_, ok := watcher.interruptFds[pin.pin]
 	if ok {
-		return errors.New("watch already exists")
+		return ErrBusy
 	}
 	if err = export(pin); err != nil {
 		return err
@@ -266,3 +266,11 @@ func (pin *Pin) Unwatch() {
 	watcher := getDefaultWatcher()
 	watcher.UnregisterPin(pin)
 }
+
+var (
+	// ErrTimeout indicates the operation could not be performed within the
+	// expected time.
+	ErrTimeout = errors.New("timeout")
+	// ErrBusy indicates the operation is already active on the pin.
+	ErrBusy = errors.New("pin already in use")
+)

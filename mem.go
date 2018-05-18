@@ -28,7 +28,7 @@ var (
 // Some reflection magic is used to convert it to a unsafe []uint32 pointer
 func Open() (err error) {
 	if len(mem) != 0 {
-		return errors.New("already open")
+		return ErrAlreadyOpen
 	}
 	file, err := os.OpenFile(
 		"/dev/gpiomem",
@@ -73,3 +73,8 @@ func Close() error {
 	mem = make([]uint32, 0)
 	return syscall.Munmap(mem8)
 }
+
+var (
+	// ErrAlreadyOpen indicates the mem is already open.
+	ErrAlreadyOpen = errors.New("already open")
+)
