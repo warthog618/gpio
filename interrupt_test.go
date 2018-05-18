@@ -61,14 +61,14 @@ func TestRegister(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	v, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, 10*time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
 	if v != 1 {
 		t.Error("Incorrect count", v)
 	}
-	_, err = waitInterrupt(ich, time.Millisecond)
+	_, err = waitInterrupt(ich, 10*time.Millisecond)
 	if err == nil {
 		t.Error("Spurious interrupt")
 	}
@@ -83,7 +83,7 @@ func TestReregister(t *testing.T) {
 	}); err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	v, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, 10*time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
@@ -96,7 +96,7 @@ func TestReregister(t *testing.T) {
 		t.Fatal("Reregistration didn't fail.")
 	}
 	pinOut.High()
-	v, err = waitInterrupt(ich, time.Millisecond)
+	v, err = waitInterrupt(ich, 10*time.Millisecond)
 	switch {
 	case err != nil:
 		t.Error("Didn't call handler")
@@ -115,7 +115,7 @@ func TestUnregister(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	v, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, 10*time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
@@ -124,7 +124,7 @@ func TestUnregister(t *testing.T) {
 	}
 	watcher.UnregisterPin(pinIn)
 	pinOut.High()
-	_, err = waitInterrupt(ich, time.Millisecond)
+	_, err = waitInterrupt(ich, 10*time.Millisecond)
 	if err == nil {
 		t.Error("Called old handler")
 	}
@@ -146,7 +146,7 @@ func TestEdgeRising(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	v, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, 10*time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
@@ -158,14 +158,14 @@ func TestEdgeRising(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	for i := 0; i < 10; i++ {
 		pinOut.High()
-		v, err := waitInterrupt(ich, time.Millisecond)
+		v, err := waitInterrupt(ich, 10*time.Millisecond)
 		if err != nil {
 			t.Error("Missed high at", i)
 		} else if v == 0 {
 			t.Error("Triggered while low at", i)
 		}
 		pinOut.Low()
-		_, err = waitInterrupt(ich, time.Millisecond)
+		_, err = waitInterrupt(ich, 10*time.Millisecond)
 		if err == nil {
 			t.Error("Spurious or delayed trigger at", i)
 		}
@@ -186,7 +186,7 @@ func TestEdgeFalling(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	v, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, 10*time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
@@ -195,12 +195,12 @@ func TestEdgeFalling(t *testing.T) {
 	}
 	for i := 0; i < 10; i++ {
 		pinOut.High()
-		_, err := waitInterrupt(ich, time.Millisecond)
+		_, err := waitInterrupt(ich, 10*time.Millisecond)
 		if err == nil {
 			t.Error("Spurious or delayed trigger at", i)
 		}
 		pinOut.Low()
-		v, err = waitInterrupt(ich, time.Millisecond)
+		v, err = waitInterrupt(ich, 10*time.Millisecond)
 		if err != nil {
 			t.Error("Missed low at", i)
 		} else if v == 1 {
@@ -223,7 +223,7 @@ func TestEdgeBoth(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	v, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, 10*time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
@@ -232,14 +232,14 @@ func TestEdgeBoth(t *testing.T) {
 	}
 	for i := 0; i < 10; i++ {
 		pinOut.High()
-		v, err := waitInterrupt(ich, time.Millisecond)
+		v, err := waitInterrupt(ich, 10*time.Millisecond)
 		if err != nil {
 			t.Error("Missed high at", i)
 		} else if v == 0 {
 			t.Error("Triggered while low at", i)
 		}
 		pinOut.Low()
-		v, err = waitInterrupt(ich, time.Millisecond)
+		v, err = waitInterrupt(ich, 10*time.Millisecond)
 		if err != nil {
 			t.Error("Missed low at", i)
 		} else if v == 1 {
@@ -262,7 +262,7 @@ func TestEdgeNone(t *testing.T) {
 	if err != nil {
 		t.Fatal("Registration failed", err)
 	}
-	v, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, 10*time.Millisecond)
 	if err != nil {
 		t.Error("No initial interrupt")
 	}
@@ -271,12 +271,12 @@ func TestEdgeNone(t *testing.T) {
 	}
 	for i := 0; i < 10; i++ {
 		pinOut.High()
-		v, err := waitInterrupt(ich, time.Millisecond)
+		v, err := waitInterrupt(ich, 10*time.Millisecond)
 		if err == nil {
 			t.Error("Spurious or delayed trigger at", i, v)
 		}
 		pinOut.Low()
-		v, err = waitInterrupt(ich, time.Millisecond)
+		v, err = waitInterrupt(ich, 10*time.Millisecond)
 		if err == nil {
 			t.Error("Spurious or delayed trigger at", i, v)
 		}
@@ -307,12 +307,12 @@ func TestCloseInterrupts(t *testing.T) {
 		t.Fatal("Registration failed", err)
 	}
 	closeInterrupts()
-	v, err := waitInterrupt(ich, time.Millisecond)
+	v, err := waitInterrupt(ich, 10*time.Millisecond)
 	if err == nil {
 		t.Error("Spurious interrupt during close", v)
 	}
 	pinOut.High()
-	v, err = waitInterrupt(ich, time.Millisecond)
+	v, err = waitInterrupt(ich, 10*time.Millisecond)
 	if err == nil {
 		t.Error("Interrupts still active after close", v)
 	}
@@ -420,6 +420,6 @@ func BenchmarkInterruptLatency(b *testing.B) {
 	defer pinIn.Unwatch()
 	for i := 0; i < b.N; i++ {
 		pinOut.Toggle()
-		waitInterrupt(ich, 5*time.Millisecond)
+		waitInterrupt(ich, 10*time.Millisecond)
 	}
 }
