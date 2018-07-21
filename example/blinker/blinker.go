@@ -23,7 +23,7 @@ func main() {
 		panic(err)
 	}
 	defer gpio.Close()
-	pin := gpio.NewPin(gpio.J8p7)
+	pin := gpio.NewPin(gpio.GPIO4)
 	defer pin.Input()
 	pin.Output()
 	// capture exit signals to ensure pin is reverted to input on exit.
@@ -34,7 +34,7 @@ func main() {
 		select {
 		case <-time.After(500 * time.Millisecond):
 			pin.Toggle()
-			fmt.Println("Toggled")
+			fmt.Println("Toggled", pin.Read())
 		case <-quit:
 			return
 		}
