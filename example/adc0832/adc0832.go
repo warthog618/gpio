@@ -8,12 +8,13 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/warthog618/config"
+	"github.com/warthog618/config/blob"
+	"github.com/warthog618/config/blob/decoder/json"
+	"github.com/warthog618/config/blob/loader/file"
 	"github.com/warthog618/config/dict"
 	"github.com/warthog618/config/env"
-	"github.com/warthog618/config/json"
 	"github.com/warthog618/config/pflag"
 	"github.com/warthog618/gpio"
 	"github.com/warthog618/gpio/adc0832"
@@ -33,31 +34,25 @@ func main() {
 		panic(err)
 	}
 	defer gpio.Close()
-	tclk := cfg.GetDuration("tclk")
-	tset := cfg.GetDuration("tset")
+	tclk := cfg.MustGet("tclk").Duration()
+	tset := cfg.MustGet("tset").Duration()
 	if tset < tclk {
 		tset = tclk
 	}
 	a := adc0832.New(
 		tclk,
 		tset,
-		uint8(cfg.GetUint("clk")),
-		uint8(cfg.GetUint("csz")),
-		uint8(cfg.GetUint("di")),
-		uint8(cfg.GetUint("do")))
+		uint8(cfg.MustGet("clk").Uint()),
+		uint8(cfg.MustGet("csz").Uint()),
+		uint8(cfg.MustGet("di").Uint()),
+		uint8(cfg.MustGet("do").Uint()))
 	defer a.Close()
 	ch0 := a.Read(0)
 	ch1 := a.Read(1)
 	fmt.Printf("ch0=0x%02x, ch1=0x%02x\n", ch0, ch1)
 }
 
-// Config defines the minimal configuration interface
-type Config interface {
-	GetDuration(k string) time.Duration
-	GetUint(k string) uint64
-}
-
-func loadConfig() Config {
+func loadConfig() *config.Config {
 	defaultConfig := map[string]interface{}{
 		"tclk": "2500ns",
 		"tset": "2500ns", // should be at least tclk - enforced in main
@@ -85,17 +80,23 @@ func loadConfig() Config {
 
 	// config file may be specified via flag or env, so check for it
 	// and if present add it with lower priority than flag and env.
-	configFile, err := cfg.GetString("config.file")
+	configFile, err := cfg.Get("config.file")
+	jsondec := json.NewDecoder()
 	if err == nil {
 		// explicitly specified config file - must be there
-		jget, err := json.New(json.FromFile(configFile))
+		f, err := file.New(configFile.String())
+		if err != nil {
+			panic(err)
+		}
+		jget, err := blob.New(f, jsondec)
 		if err != nil {
 			panic(err)
 		}
 		sources.Append(jget)
 	} else {
 		// implicit and optional default config file
-		jget, err := json.New(json.FromFile("adc0832.json"))
+		f, _ := file.New("adc0832.json")
+		jget, err := blob.New(f, jsondec)
 		if err == nil {
 			sources.Append(jget)
 		} else {
@@ -104,6 +105,6 @@ func loadConfig() Config {
 			}
 		}
 	}
-	m := cfg.GetMust("", config.WithPanic())
-	return m
+	cfg = cfg.GetConfig("", config.WithMust())
+	return cfg
 }
