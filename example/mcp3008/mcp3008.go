@@ -50,11 +50,11 @@ func main() {
 
 func loadConfig() *config.Config {
 	defaultConfig := map[string]interface{}{
-		"tclk": "2500ns",
-		"clk":  gpio.GPIO26,
+		"tclk": "500ns",
+		"clk":  gpio.GPIO21,
 		"csz":  gpio.GPIO6,
-		"di":   gpio.GPIO13,
-		"do":   gpio.GPIO19,
+		"di":   gpio.GPIO19,
+		"do":   gpio.GPIO26,
 	}
 	def := dict.New(dict.WithMap(defaultConfig))
 	shortFlags := map[byte]string{
