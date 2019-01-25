@@ -161,6 +161,7 @@ const (
 	GPIO24 = J8p18
 	GPIO25 = J8p22
 	GPIO26 = J8p37
+	GPIO27 = J8p13
 )
 
 // NewPin creates a new pin object.
