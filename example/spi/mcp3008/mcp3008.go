@@ -17,7 +17,7 @@ import (
 	"github.com/warthog618/config/env"
 	"github.com/warthog618/config/pflag"
 	"github.com/warthog618/gpio"
-	"github.com/warthog618/gpio/mcp3008"
+	"github.com/warthog618/gpio/spi/mcp3w0c"
 )
 
 // This example reads both channels from an MCP3008 connected to the RPI by four
@@ -35,7 +35,7 @@ func main() {
 	}
 	defer gpio.Close()
 	tclk := cfg.MustGet("tclk").Duration()
-	adc := mcp3008.New(
+	adc := mcp3w0c.NewMCP3008(
 		tclk,
 		uint8(cfg.MustGet("clk").Uint()),
 		uint8(cfg.MustGet("csz").Uint()),

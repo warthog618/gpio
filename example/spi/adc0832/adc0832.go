@@ -17,7 +17,7 @@ import (
 	"github.com/warthog618/config/env"
 	"github.com/warthog618/config/pflag"
 	"github.com/warthog618/gpio"
-	"github.com/warthog618/gpio/adc0832"
+	"github.com/warthog618/gpio/spi/adc0832"
 )
 
 // This example reads both channels from an ADC0832 connected to the RPI by four
