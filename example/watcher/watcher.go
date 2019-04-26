@@ -7,6 +7,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/warthog618/gpio"
@@ -22,12 +24,25 @@ func main() {
 	pin := gpio.NewPin(gpio.J8p7)
 	pin.Input()
 	pin.PullUp()
-	pin.Watch(gpio.EdgeBoth, func(pin *gpio.Pin) {
+
+	// capture exit signals to ensure resources are released on exit.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, os.Kill)
+	defer signal.Stop(quit)
+
+	err = pin.Watch(gpio.EdgeBoth, func(pin *gpio.Pin) {
 		fmt.Printf("Pin 4 is %v", pin.Read())
 	})
+	if err != nil {
+		panic(err)
+	}
 	defer pin.Unwatch()
+
 	// In a real application the main thread would do something useful here.
 	// But we'll just run for a minute then exit.
 	fmt.Println("Watching Pin 4...")
-	time.Sleep(time.Minute)
+	select {
+	case <-time.After(time.Minute):
+	case <-quit:
+	}
 }
