@@ -224,6 +224,11 @@ func (pin *Pin) Shadow() Level {
 	return pin.shadow
 }
 
+// Pin returns the pin number that this Pin represents.
+func (pin *Pin) Pin() uint8 {
+	return pin.pin
+}
+
 // Toggle pin state
 func (pin *Pin) Toggle() {
 	if pin.shadow {

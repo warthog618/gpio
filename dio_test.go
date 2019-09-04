@@ -122,6 +122,19 @@ func TestPull(t *testing.T) {
 	pin.PullNone()
 }
 
+func TestPin(t *testing.T) {
+	setupDIO(t)
+	defer teardownDIO()
+	pin := NewPin(J8p7)
+	if pin.Pin() != J8p7 {
+		t.Error("Incorrect pin returned by Pin")
+	}
+	pin = NewPin(J8p16)
+	if pin.Pin() != J8p16 {
+		t.Error("Incorrect pin returned by Pin")
+	}
+}
+
 func TestWrite(t *testing.T) {
 	setupDIO(t)
 	defer teardownDIO()
