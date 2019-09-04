@@ -7,12 +7,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/warthog618/config"
 	"github.com/warthog618/config/blob"
 	"github.com/warthog618/config/blob/decoder/json"
-	"github.com/warthog618/config/blob/loader/file"
 	"github.com/warthog618/config/dict"
 	"github.com/warthog618/config/env"
 	"github.com/warthog618/config/pflag"
@@ -65,46 +63,12 @@ func loadConfig() *config.Config {
 	shortFlags := map[byte]string{
 		'c': "config-file",
 	}
-	fget, err := pflag.New(pflag.WithShortFlags(shortFlags))
-	if err != nil {
-		panic(err)
-	}
-	// environment next
-	eget, err := env.New(env.WithEnvPrefix("ADC0832_"))
-	if err != nil {
-		panic(err)
-	}
-	// highest priority sources first - flags override environment
-	sources := config.NewStack(fget, eget)
-	cfg := config.NewConfig(config.Decorate(sources, config.WithDefault(def)))
-
-	// config file may be specified via flag or env, so check for it
-	// and if present add it with lower priority than flag and env.
-	configFile, err := cfg.Get("config.file")
-	jsondec := json.NewDecoder()
-	if err == nil {
-		// explicitly specified config file - must be there
-		f, err := file.New(configFile.String())
-		if err != nil {
-			panic(err)
-		}
-		jget, err := blob.New(f, jsondec)
-		if err != nil {
-			panic(err)
-		}
-		sources.Append(jget)
-	} else {
-		// implicit and optional default config file
-		f, _ := file.New("adc0832.json")
-		jget, err := blob.New(f, jsondec)
-		if err == nil {
-			sources.Append(jget)
-		} else {
-			if _, ok := err.(*os.PathError); !ok {
-				panic(err)
-			}
-		}
-	}
+	cfg := config.New(
+		pflag.New(pflag.WithShortFlags(shortFlags)),
+		env.New(env.WithEnvPrefix("ADC0832_")),
+		config.WithDefault(def))
+	cfg.Append(
+		blob.NewConfigFile(cfg, "config.file", "adc0832.json", json.NewDecoder()))
 	cfg = cfg.GetConfig("", config.WithMust())
 	return cfg
 }
