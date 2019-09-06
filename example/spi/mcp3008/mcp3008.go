@@ -35,10 +35,10 @@ func main() {
 	tclk := cfg.MustGet("tclk").Duration()
 	adc := mcp3w0c.NewMCP3008(
 		tclk,
-		uint8(cfg.MustGet("clk").Uint()),
-		uint8(cfg.MustGet("csz").Uint()),
-		uint8(cfg.MustGet("di").Uint()),
-		uint8(cfg.MustGet("do").Uint()))
+		int(cfg.MustGet("clk").Int()),
+		int(cfg.MustGet("csz").Int()),
+		int(cfg.MustGet("di").Int()),
+		int(cfg.MustGet("do").Int()))
 	defer adc.Close()
 	for ch := 0; ch < 8; ch++ {
 		d := adc.Read(ch)

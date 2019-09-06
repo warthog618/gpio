@@ -23,7 +23,7 @@ import (
 
 const (
 	// MaxGPIOInterrupt is the maximum pin number.
-	MaxGPIOInterrupt = 54
+	MaxGPIOInterrupt = MaxGPIOPin
 )
 
 // Edge represents the change in Pin level that triggers an interrupt.
@@ -51,7 +51,7 @@ type Watcher struct {
 	sync.Mutex // Guards the following, and sysfs interactions.
 	Fd         int
 	// Map from pin to value Fd.
-	interruptFds map[uint8]int
+	interruptFds map[int]int
 	// Map from pin Fd to interrupt
 	interrupts map[int]*interrupt
 }
@@ -73,7 +73,7 @@ func NewWatcher() *Watcher {
 	}
 	watcher := &Watcher{
 		Fd:           Fd,
-		interruptFds: make(map[uint8]int),
+		interruptFds: make(map[int]int),
 		interrupts:   make(map[int]*interrupt)}
 
 	go func() {

@@ -24,17 +24,17 @@ type MCP3w0c struct {
 }
 
 // New creates a MCP3w0c.
-func New(tclk time.Duration, sclk, ssz, mosi, miso uint8, width uint) *MCP3w0c {
+func New(tclk time.Duration, sclk, ssz, mosi, miso int, width uint) *MCP3w0c {
 	return &MCP3w0c{*spi.New(tclk, sclk, ssz, mosi, miso), width}
 }
 
 // NewMCP3008 creates a MCP3008.
-func NewMCP3008(tclk time.Duration, sclk, ssz, mosi, miso uint8) *MCP3w0c {
+func NewMCP3008(tclk time.Duration, sclk, ssz, mosi, miso int) *MCP3w0c {
 	return &MCP3w0c{*spi.New(tclk, sclk, ssz, mosi, miso), 10}
 }
 
 // NewMCP3208 creates a MCP3208.
-func NewMCP3208(tclk time.Duration, sclk, ssz, mosi, miso uint8) *MCP3w0c {
+func NewMCP3208(tclk time.Duration, sclk, ssz, mosi, miso int) *MCP3w0c {
 	return &MCP3w0c{*spi.New(tclk, sclk, ssz, mosi, miso), 12}
 }
 

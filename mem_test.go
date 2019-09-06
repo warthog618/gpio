@@ -4,36 +4,29 @@
 // license that can be found in the LICENSE file.
 
 // Test suite for mem module.
-package gpio
+package gpio_test
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/warthog618/gpio"
 )
 
 func TestOpen(t *testing.T) {
-	if err := Open(); err != nil {
-		t.Fatal("Open returned error", err)
-	}
-	defer Close()
+	assert.Nil(t, gpio.Open())
+	defer gpio.Close()
 }
 
 func TestOpenOpened(t *testing.T) {
-	if err := Open(); err != nil {
-		t.Fatal("Open returned error", err)
-	}
-	defer Close()
-	if err := Open(); err == nil {
-		t.Fatal("Open when opened didn't return error")
-	}
+	assert.Nil(t, gpio.Open())
+	defer gpio.Close()
+	assert.NotNil(t, gpio.Open())
 }
 
 func TestReOpen(t *testing.T) {
-	if err := Open(); err != nil {
-		t.Fatal("Open returned error", err)
-	}
-	Close()
-	if err := Open(); err != nil {
-		t.Fatal("Open returned error", err)
-	}
-	defer Close()
+	assert.Nil(t, gpio.Open())
+	gpio.Close()
+	assert.Nil(t, gpio.Open())
+	defer gpio.Close()
 }

@@ -47,12 +47,12 @@ import (
 // Pin represents a single GPIO pin.
 type Pin struct {
 	// Immutable fields
-	pin      uint8
-	fsel     uint8
-	levelReg uint8
-	clearReg uint8
-	setReg   uint8
-	bank     uint8
+	pin      int
+	fsel     int
+	levelReg int
+	clearReg int
+	setReg   int
+	bank     int
 	mask     uint32
 	// Mutable fields
 	shadow Level
@@ -62,10 +62,10 @@ type Pin struct {
 type Level bool
 
 // Mode defines the IO mode of a Pin.
-type Mode uint8
+type Mode int
 
 // Pull defines the pull up/down state of a Pin.
-type Pull uint8
+type Pull int
 
 const (
 	memLength = 4096
@@ -91,7 +91,7 @@ const (
 // Level of pin, High / Low
 const (
 	Low  Level = false
-	High       = true
+	High Level = true
 )
 
 // Pull Up / Down / Off
@@ -132,6 +132,7 @@ const (
 	J8p22
 	J8p37
 	J8p13
+	MaxGPIOPin
 )
 
 // GPIO aliases to J8 pins
@@ -166,9 +167,12 @@ const (
 
 // NewPin creates a new pin object.
 // The pin number provided is the BCM GPIO number.
-func NewPin(pin uint8) *Pin {
+func NewPin(pin int) *Pin {
 	if len(mem) == 0 {
 		panic("GPIO not initialised.")
+	}
+	if pin < 0 || pin >= MaxGPIOPin {
+		return nil
 	}
 	// Pre-calculate commonly used register addresses and bit masks.
 	// Pin fsel register, 0 - 5 depending on pin
@@ -225,7 +229,7 @@ func (pin *Pin) Shadow() Level {
 }
 
 // Pin returns the pin number that this Pin represents.
-func (pin *Pin) Pin() uint8 {
+func (pin *Pin) Pin() int {
 	return pin.pin
 }
 

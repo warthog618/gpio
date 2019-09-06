@@ -27,7 +27,7 @@ type SPI struct {
 }
 
 // New creates a SPI.
-func New(tclk time.Duration, sclk, ssz, mosi, miso uint8) *SPI {
+func New(tclk time.Duration, sclk, ssz, mosi, miso int) *SPI {
 	spi := &SPI{
 		Tclk: tclk,
 		Sclk: gpio.NewPin(sclk),

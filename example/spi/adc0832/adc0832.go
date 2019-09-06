@@ -40,10 +40,10 @@ func main() {
 	a := adc0832.New(
 		tclk,
 		tset,
-		uint8(cfg.MustGet("clk").Uint()),
-		uint8(cfg.MustGet("csz").Uint()),
-		uint8(cfg.MustGet("di").Uint()),
-		uint8(cfg.MustGet("do").Uint()))
+		int(cfg.MustGet("clk").Int()),
+		int(cfg.MustGet("csz").Int()),
+		int(cfg.MustGet("di").Int()),
+		int(cfg.MustGet("do").Int()))
 	defer a.Close()
 	ch0 := a.Read(0)
 	ch1 := a.Read(1)

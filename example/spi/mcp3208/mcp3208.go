@@ -35,10 +35,10 @@ func main() {
 	tclk := cfg.MustGet("tclk").Duration()
 	adc := mcp3w0c.NewMCP3208(
 		tclk,
-		uint8(cfg.MustGet("sclk").Uint()),
-		uint8(cfg.MustGet("ssz").Uint()),
-		uint8(cfg.MustGet("mosi").Uint()),
-		uint8(cfg.MustGet("miso").Uint()))
+		int(cfg.MustGet("sclk").Int()),
+		int(cfg.MustGet("ssz").Int()),
+		int(cfg.MustGet("mosi").Int()),
+		int(cfg.MustGet("miso").Int()))
 	defer adc.Close()
 	vbe := gpio.NewPin(gpio.GPIO16)
 	defer vbe.Input()

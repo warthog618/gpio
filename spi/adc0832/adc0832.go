@@ -21,7 +21,7 @@ type ADC0832 struct {
 }
 
 // New creates a ADC0832.
-func New(tclk, tset time.Duration, sclk, ssz, mosi, miso uint8) *ADC0832 {
+func New(tclk, tset time.Duration, sclk, ssz, mosi, miso int) *ADC0832 {
 	return &ADC0832{*spi.New(tclk, sclk, ssz, mosi, miso), tset}
 }
 

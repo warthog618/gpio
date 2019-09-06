@@ -155,18 +155,21 @@ Later Pis can also use ARM7 (GOARM=7).
 
 The tests include benchmarks on reads and writes.  Reading pin levels through sysfs is provided for comparison.
 
-These are the results from a Raspberry Pi B(Rev1)
+These are the results from a Raspberry Pi ZeroW built with Go 1.13:
 
 ```sh
 $ ./gpio.test -test.bench=.*
+goos: linux
+goarch: arm
+pkg: github.com/warthog618/gpio
+BenchmarkSysfsRead               62175         16770 ns/op
+BenchmarkSysfsWrite              15819         64119 ns/op
+BenchmarkSysfsToggle             15549         65614 ns/op
+BenchmarkInterruptLatency         1346        807506 ns/op
+BenchmarkRead                  9706548           123 ns/op
+BenchmarkWrite                20370154            59.3 ns/op
+BenchmarkToggle               16669756            71.9 ns/op
 PASS
-BenchmarkRead                 5000000         240 ns/op
-BenchmarkWrite               20000000        81.9 ns/op
-BenchmarkToggle              20000000        97.1 ns/op
-BenchmarkSysfsRead             100000       11549 ns/op
-BenchmarkSysfsWrite             50000       26592 ns/op
-BenchmarkSysfsToggle            50000       25414 ns/op
-BenchmarkInterruptLatency        1000     1092871 ns/op
 ```
 
 ## Prerequisites
