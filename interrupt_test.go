@@ -19,15 +19,10 @@ import (
 )
 
 func waitInterrupt(ch chan int, timeout time.Duration) (int, error) {
-	expired := make(chan bool)
-	go func() {
-		time.Sleep(timeout)
-		close(expired)
-	}()
 	select {
 	case v := <-ch:
 		return v, nil
-	case <-expired:
+	case <-time.After(timeout):
 		return 0, errors.New("timeout")
 	}
 }
@@ -324,6 +319,6 @@ func BenchmarkInterruptLatency(b *testing.B) {
 	defer pinIn.Unwatch()
 	for i := 0; i < b.N; i++ {
 		pinOut.Toggle()
-		waitInterrupt(ich, 10*time.Millisecond)
+		<-ich
 	}
 }
