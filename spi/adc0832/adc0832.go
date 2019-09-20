@@ -13,6 +13,7 @@ import (
 )
 
 // ADC0832 reads ADC values from a connected ADC0832.
+//
 // The two data pins, di and do, may be tied and connected to a single GPIO pin.
 type ADC0832 struct {
 	spi.SPI

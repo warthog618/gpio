@@ -14,6 +14,7 @@ import (
 )
 
 // MCP3w0c reads ADC values from a connected Microchip MCP3xxx family device.
+//
 // Supported variants are MCP3004/3008/3204/3208.
 // The w indicates the width of the device (0 => 10, 2 => 12)
 // and the c the number of channels.

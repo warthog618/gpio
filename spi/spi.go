@@ -12,10 +12,13 @@ import (
 	"github.com/warthog618/gpio"
 )
 
-// SPI resprents a device connected to the Raspberry Pi via an SPI bus using 3 or 4 GPIO lines.
-// Depending on the device, the two data pins, Mosi and Miso, may be tied and connected to a single GPIO pin.
-// This is the basis for bit bashed SPI interfaces using GPIO pins.
-// It is not related to the SPI device drivers provided by Linux.
+// SPI represents a device connected to the Raspberry Pi via an SPI bus using 3
+// or 4 GPIO lines.
+//
+// Depending on the device, the two data pins, Mosi and Miso, may be tied and
+// connected to a single GPIO pin. This is the basis for bit bashed SPI
+// interfaces using GPIO pins. It is not related to the SPI device drivers
+// provided by Linux.
 type SPI struct {
 	Mu sync.Mutex
 	// time between clock edges (i.e. half the cycle time)
