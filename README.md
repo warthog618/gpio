@@ -162,13 +162,13 @@ $ ./gpio.test -test.bench=.*
 goos: linux
 goarch: arm
 pkg: github.com/warthog618/gpio
+BenchmarkRead                  9485052           124 ns/op
+BenchmarkWrite                18478959          58.8 ns/op
+BenchmarkToggle               16695492          72.4 ns/op
+BenchmarkInterruptLatency         2348        453248 ns/op
 BenchmarkSysfsRead               32983         31004 ns/op
 BenchmarkSysfsWrite              17192         69840 ns/op
 BenchmarkSysfsToggle             17341         62962 ns/op
-BenchmarkInterruptLatency         2348        453248 ns/op
-BenchmarkRead                  9485052           124 ns/op
-BenchmarkWrite                18478959            58.8 ns/op
-BenchmarkToggle               16695492            72.4 ns/op
 
 PASS
 ```
