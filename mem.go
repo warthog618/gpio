@@ -16,8 +16,16 @@ import (
 	"unsafe"
 )
 
+type Chipset int
+
+const (
+	BCM2835 Chipset = iota
+	BCM2711
+)
+
 // Arrays for 8 / 32 bit access to memory and a semaphore for write locking
 var (
+	chipset Chipset
 	// The memlock covers read/modify/write access to the mem block.
 	// Individual reads and writes can skip the lock on the assumption that
 	// concurrent register writes are atomic. e.g. Read, Write and Mode.
@@ -63,6 +71,12 @@ func Open() (err error) {
 	header.Cap /= 4
 
 	mem = *(*[]uint32)(unsafe.Pointer(&header))
+
+	if mem[60] == 0x6770696f {
+		chipset = BCM2835
+	} else {
+		chipset = BCM2711
+	}
 
 	return nil
 }

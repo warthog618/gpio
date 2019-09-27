@@ -47,13 +47,14 @@ import (
 // Pin represents a single GPIO pin.
 type Pin struct {
 	// Immutable fields
-	pin      int
-	fsel     int
-	levelReg int
-	clearReg int
-	setReg   int
-	bank     int
-	mask     uint32
+	pin         int
+	fsel        int
+	levelReg    int
+	clearReg    int
+	setReg      int
+	pullReg2711 int
+	bank        int
+	mask        uint32
 	// Mutable fields
 	shadow Level
 }
@@ -72,8 +73,8 @@ const (
 
 	modeMask uint32 = 7 // pin mode is 3 bits wide
 	pullMask uint32 = 3 // pull mode is 2 bits wide
-	// pullReg is the same for all banks.
-	pullReg = 37
+	// BCM2835 pullReg is the same for all pins.
+	pullReg2835 = 37
 )
 
 // Pin Mode, a pin can be set in Input or Output mode
@@ -174,26 +175,44 @@ func NewPin(pin int) *Pin {
 	if pin < 0 || pin >= MaxGPIOPin {
 		return nil
 	}
+
 	// Pre-calculate commonly used register addresses and bit masks.
+
 	// Pin fsel register, 0 - 5 depending on pin
 	fsel := pin / 10
+
 	// This seems like overkill given the J8 pins are all on the first bank...
 	bank := pin / 32
 	mask := uint32(1 << (pin & 0x1f))
+
 	// Input level register offset (13 / 14 depending on bank)
 	levelReg := 13 + bank
+
 	// Clear register, 10 / 11 depending on bank
 	clearReg := 10 + bank
+
 	// Set register, 7 / 8 depending on bank
 	setReg := 7 + bank
+
+	// Pull register, 57-60 depending on pin
+	pullReg := 57 + pin/16
 
 	shadow := Low
 	if mem[levelReg]&mask != 0 {
 		shadow = High
 	}
 
-	return &Pin{pin: pin, fsel: fsel, bank: bank, mask: mask,
-		levelReg: levelReg, clearReg: clearReg, setReg: setReg, shadow: shadow}
+	return &Pin{
+		pin:         pin,
+		fsel:        fsel,
+		bank:        bank,
+		mask:        mask,
+		levelReg:    levelReg,
+		clearReg:    clearReg,
+		pullReg2711: pullReg,
+		setReg:      setReg,
+		shadow:      shadow,
+	}
 }
 
 // Input sets pin as Input.
@@ -276,21 +295,43 @@ func (pin *Pin) Write(level Level) {
 // Unlike the mode, the pull value cannot be read back from hardware and
 // so must be remembered by the caller.
 func (pin *Pin) SetPull(pull Pull) {
-	// Pull up/down/off register has offset 38 / 39
-	pullClkReg := pin.bank + 38
+	switch chipset {
+	case BCM2711:
+		pin.setPull2711(pull)
+	default:
+		pin.setPull2835(pull)
+	}
+}
 
+func (pin *Pin) setPull2835(pull Pull) {
+	clkReg := pin.bank + 38
 	memlock.Lock()
 	defer memlock.Unlock()
 
-	mem[pullReg] = mem[pullReg]&^pullMask | uint32(pull)
+	mem[pullReg2835] = mem[pullReg2835]&^pullMask | uint32(pull)
 	// Wait for value to clock in, this is ugly, sorry :(
 	// This wait corresponds to at least 150 clock cycles.
 	time.Sleep(time.Microsecond)
-	mem[pullClkReg] = pin.mask
+	mem[clkReg] = pin.mask
 	// Wait for value to clock in
 	time.Sleep(time.Microsecond)
-	mem[pullReg] = mem[pullReg] &^ pullMask
-	mem[pullClkReg] = 0
+	mem[pullReg2835] = mem[pullReg2835] &^ pullMask
+	mem[clkReg] = 0
+
+}
+
+func (pin *Pin) setPull2711(pull Pull) {
+	// 2711 reverses up/down sense
+	switch pull {
+	case PullUp:
+		pull = PullDown
+	case PullDown:
+		pull = PullUp
+	}
+	shift := (pin.pin & 0x0f) << 1
+	memlock.Lock()
+	defer memlock.Unlock()
+	mem[pin.pullReg2711] = mem[pin.pullReg2711]&^(pullMask<<shift) | uint32(pull)<<shift
 }
 
 // PullUp sets the pull state of the pin to PullUp.
