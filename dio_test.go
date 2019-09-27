@@ -12,6 +12,7 @@ package gpio_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/warthog618/gpio"
@@ -84,10 +85,14 @@ func TestPull(t *testing.T) {
 	// A basic read test - using the pull up/down to drive the pin.
 	assert.Equal(t, gpio.Input, pin.Mode())
 	pin.PullUp()
+	pullSettle := time.Microsecond
+	time.Sleep(pullSettle)
 	assert.Equal(t, gpio.High, pin.Read())
 	pin.PullDown()
+	time.Sleep(pullSettle)
 	assert.Equal(t, gpio.Low, pin.Read())
 	pin.SetPull(gpio.PullUp)
+	time.Sleep(pullSettle)
 	assert.Equal(t, gpio.High, pin.Read())
 	// no real way of testing this, but to trick coverage...
 	pin.PullNone()
