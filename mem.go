@@ -16,10 +16,14 @@ import (
 	"unsafe"
 )
 
+// Chipset identifies the GPIO chip.
 type Chipset int
 
 const (
+	// BCM2835 indicates the chipset is BCM2825 or compatible.
 	BCM2835 Chipset = iota
+
+	// BCM2711 indicates the chipset is BCM2711.
 	BCM2711
 )
 
