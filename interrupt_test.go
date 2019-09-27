@@ -238,10 +238,11 @@ func TestCloseInterrupts(t *testing.T) {
 		}
 	}))
 	closeInterrupts()
-	_, err := waitInterrupt(ich, 10*time.Millisecond)
-	assert.NotNil(t, err, "Spurious interrupt during close")
+	// absorb any pending interrupt
+	waitInterrupt(ich, 1*time.Millisecond)
+	// confirm that no further interrupts can be triggered.
 	pinOut.High()
-	_, err = waitInterrupt(ich, 10*time.Millisecond)
+	_, err := waitInterrupt(ich, 10*time.Millisecond)
 	assert.NotNil(t, err, "Interrupts still active after close")
 }
 
