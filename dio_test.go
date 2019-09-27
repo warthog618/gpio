@@ -81,7 +81,7 @@ func TestPull(t *testing.T) {
 	defer teardownDIO()
 	pin := gpio.NewPin(gpio.J8p7)
 	defer pin.PullUp()
-	// A basic read test - using the pull up/down to drive he pin.
+	// A basic read test - using the pull up/down to drive the pin.
 	assert.Equal(t, gpio.Input, pin.Mode())
 	pin.PullUp()
 	assert.Equal(t, gpio.High, pin.Read())
