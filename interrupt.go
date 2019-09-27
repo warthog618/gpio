@@ -15,7 +15,6 @@ import (
 	"os"
 	"strconv"
 	"sync"
-	"syscall"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -49,62 +48,90 @@ type interrupt struct {
 // Watcher monitors the pins for level transitions that trigger interrupts.
 type Watcher struct {
 	sync.Mutex // Guards the following, and sysfs interactions.
-	Fd         int
+
+	epfd int
+
 	// Map from pin to value Fd.
 	interruptFds map[int]int
+
 	// Map from pin Fd to interrupt
 	interrupts map[int]*interrupt
+
+	// closed when the watcher exits.
+	doneCh chan struct{}
+
+	// fds of the pipe for the shutdown handshake.
+	donefds []int
+
+	closed bool
 }
 
 var defaultWatcher *Watcher
 
 func getDefaultWatcher() *Watcher {
+	memlock.Lock()
 	if defaultWatcher == nil {
 		defaultWatcher = NewWatcher()
 	}
+	memlock.Unlock()
 	return defaultWatcher
 }
 
 // NewWatcher creates a goroutine that watches Pins for transitions that trigger interrupts.
 func NewWatcher() *Watcher {
-	Fd, err := syscall.EpollCreate1(0)
+	epfd, err := unix.EpollCreate1(0)
 	if err != nil {
 		panic(fmt.Sprintf("Unable to create epoll: %v", err))
 	}
+	p := []int{0, 0}
+	err = unix.Pipe2(p, unix.O_CLOEXEC)
+	if err != nil {
+		panic(fmt.Sprintf("Unable to create pipe: %v", err))
+	}
+	epv := unix.EpollEvent{Events: unix.EPOLLIN, Fd: int32(p[0])}
+	unix.EpollCtl(epfd, unix.EPOLL_CTL_ADD, int(p[0]), &epv)
 	watcher := &Watcher{
-		Fd:           Fd,
+		epfd:         epfd,
 		interruptFds: make(map[int]int),
-		interrupts:   make(map[int]*interrupt)}
+		interrupts:   make(map[int]*interrupt),
+		doneCh:       make(chan struct{}),
+		donefds:      p,
+	}
+	go watcher.watch()
 
-	go func() {
-		var epollEvents [MaxGPIOInterrupt]syscall.EpollEvent
+	return watcher
+}
 
-		for {
-			n, err := syscall.EpollWait(watcher.Fd, epollEvents[:], -1)
-			if err != nil {
-				if err == syscall.EBADF || err == syscall.EINVAL {
-					// fd closed so exit
-					return
-				}
-				if err == syscall.EINTR {
-					continue
-				}
-				panic(fmt.Sprintf("EpollWait error: %v", err))
+func (watcher *Watcher) watch() {
+	var epollEvents [MaxGPIOInterrupt]unix.EpollEvent
+	defer close(watcher.doneCh)
+	for {
+		n, err := unix.EpollWait(watcher.epfd, epollEvents[:], -1)
+		if err != nil {
+			if err == unix.EBADF || err == unix.EINVAL {
+				// fd closed so exit
+				return
 			}
-			irqs := make([]*interrupt, 0, n)
-			watcher.Lock()
-			for _, event := range epollEvents {
-				if irq, ok := watcher.interrupts[int(event.Fd)]; ok {
-					irqs = append(irqs, irq)
-				}
+			if err == unix.EINTR {
+				continue
 			}
-			watcher.Unlock()
-			for _, irq := range irqs {
-				irq.handler(irq.pin)
+			panic(fmt.Sprintf("EpollWait error: %v", err))
+		}
+		watcher.Lock()
+		for i := 0; i < n; i++ {
+			event := epollEvents[i]
+			if event.Fd == int32(watcher.donefds[0]) {
+				unix.Close(watcher.epfd)
+				unix.Close(watcher.donefds[0])
+				watcher.Unlock()
+				return
+			}
+			if irq, ok := watcher.interrupts[int(event.Fd)]; ok {
+				go irq.handler(irq.pin)
 			}
 		}
-	}()
-	return watcher
+		watcher.Unlock()
+	}
 }
 
 func closeInterrupts() {
@@ -118,10 +145,13 @@ func closeInterrupts() {
 
 // Close - His watch has ended.
 func (watcher *Watcher) Close() {
-	syscall.Close(watcher.Fd)
 	watcher.Lock()
-	defer watcher.Unlock()
-
+	if watcher.closed {
+		watcher.Unlock()
+		return
+	}
+	watcher.closed = true
+	unix.Write(watcher.donefds[1], []byte("bye"))
 	for fd := range watcher.interrupts {
 		intr := watcher.interrupts[fd]
 		intr.valueFile.Close()
@@ -129,6 +159,8 @@ func (watcher *Watcher) Close() {
 	}
 	watcher.interrupts = nil
 	watcher.interruptFds = nil
+	watcher.Unlock()
+	<-watcher.doneCh
 }
 
 // Wait for the sysfs GPIO files to become writable.
@@ -160,7 +192,7 @@ func export(pin *Pin) error {
 	}
 	defer file.Close()
 	_, err = file.WriteString(strconv.Itoa(int(pin.pin)))
-	if e, ok := err.(*os.PathError); ok && e.Err == syscall.EBUSY {
+	if e, ok := err.(*os.PathError); ok && e.Err == unix.EBUSY {
 		return ErrBusy
 	}
 	if err != nil {
@@ -224,12 +256,12 @@ func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) (er
 	}
 	pinFd := int(valueFile.Fd())
 
-	event := syscall.EpollEvent{Events: syscall.EPOLLET & 0xffffffff}
-	if err = syscall.SetNonblock(pinFd, true); err != nil {
+	event := unix.EpollEvent{Events: unix.EPOLLET & 0xffffffff}
+	if err = unix.SetNonblock(pinFd, true); err != nil {
 		return err
 	}
 	event.Fd = int32(pinFd)
-	if err := syscall.EpollCtl(watcher.Fd, syscall.EPOLL_CTL_ADD, pinFd, &event); err != nil {
+	if err := unix.EpollCtl(watcher.epfd, unix.EPOLL_CTL_ADD, pinFd, &event); err != nil {
 		return err
 	}
 	watcher.interruptFds[pin.pin] = pinFd
@@ -247,8 +279,8 @@ func (watcher *Watcher) UnregisterPin(pin *Pin) {
 		return
 	}
 	delete(watcher.interruptFds, pin.pin)
-	syscall.EpollCtl(watcher.Fd, syscall.EPOLL_CTL_DEL, pinFd, nil)
-	syscall.SetNonblock(pinFd, false)
+	unix.EpollCtl(watcher.epfd, unix.EPOLL_CTL_DEL, pinFd, nil)
+	unix.SetNonblock(pinFd, false)
 	intr, ok := watcher.interrupts[pinFd]
 	if ok {
 		delete(watcher.interrupts, pinFd)
