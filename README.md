@@ -143,6 +143,7 @@ Available Commands:
   get         Read the level of a pin or pins
   help        Help about any command
   mode        Read the functional mode of a pin or pins
+  mon         Monitor the level of a pin or pins
   pull        Set the pull direction of a pin or pins
   set         Set the level of a pin or pins
   version     Display the version
@@ -152,7 +153,6 @@ Flags:
       --version   version for gppiio
 
 Use "gppiio [command] --help" for more information about a command.
-
 ```
 
 ## Examples
