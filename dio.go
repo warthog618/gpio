@@ -183,7 +183,7 @@ func NewPin(pin int) *Pin {
 
 	// This seems like overkill given the J8 pins are all on the first bank...
 	bank := pin / 32
-	mask := uint32(1 << (pin & 0x1f))
+	mask := uint32(1 << uint(pin & 0x1f))
 
 	// Input level register offset (13 / 14 depending on bank)
 	levelReg := 13 + bank
@@ -238,7 +238,7 @@ func (pin *Pin) Low() {
 // Mode returns the mode of the pin in the Function Select register.
 func (pin *Pin) Mode() Mode {
 	// read Mode and current value
-	modeShift := (pin.pin % 10) * 3
+	modeShift := uint(pin.pin % 10) * 3
 	return Mode(mem[pin.fsel] >> modeShift & modeMask)
 }
 
@@ -264,7 +264,7 @@ func (pin *Pin) Toggle() {
 // SetMode sets the pin Mode.
 func (pin *Pin) SetMode(mode Mode) {
 	// shift for pin mode field within fsel register.
-	modeShift := (pin.pin % 10) * 3
+	modeShift := uint(pin.pin % 10) * 3
 
 	memlock.Lock()
 	defer memlock.Unlock()
@@ -328,7 +328,7 @@ func (pin *Pin) setPull2711(pull Pull) {
 	case PullDown:
 		pull = PullUp
 	}
-	shift := (pin.pin & 0x0f) << 1
+	shift := uint(pin.pin & 0x0f) << 1
 	memlock.Lock()
 	defer memlock.Unlock()
 	mem[pin.pullReg2711] = mem[pin.pullReg2711]&^(pullMask<<shift) | uint32(pull)<<shift
