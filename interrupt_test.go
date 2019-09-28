@@ -237,12 +237,17 @@ func TestCloseInterrupts(t *testing.T) {
 			ich <- 0
 		}
 	}))
+	// absorb state sync interrupt
+	v, err := waitInterrupt(ich, 10*time.Millisecond)
+	assert.Nil(t, err, "Missing sync interrupt")
+	assert.Equal(t, 0, v)
 	closeInterrupts()
-	// absorb any pending interrupt
-	waitInterrupt(ich, 1*time.Millisecond)
+	// check no interrupts triggered by close
+	_, err = waitInterrupt(ich, 10*time.Millisecond)
+	assert.NotNil(t, err, "Interrupts still active after close")
 	// confirm that no further interrupts can be triggered.
 	pinOut.High()
-	_, err := waitInterrupt(ich, 10*time.Millisecond)
+	_, err = waitInterrupt(ich, 10*time.Millisecond)
 	assert.NotNil(t, err, "Interrupts still active after close")
 }
 
