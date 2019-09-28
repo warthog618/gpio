@@ -161,6 +161,7 @@ func (watcher *Watcher) Close() {
 	watcher.interruptFds = nil
 	watcher.Unlock()
 	<-watcher.doneCh
+	unix.Close(watcher.donefds[1])
 }
 
 // Wait for the sysfs GPIO files to become writable.
