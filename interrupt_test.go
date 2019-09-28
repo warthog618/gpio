@@ -244,7 +244,7 @@ func TestCloseInterrupts(t *testing.T) {
 	closeInterrupts()
 	// check no interrupts triggered by close
 	_, err = waitInterrupt(ich, 10*time.Millisecond)
-	assert.NotNil(t, err, "Interrupts still active after close")
+	assert.NotNil(t, err, "Interrupt triggered by close")
 	// confirm that no further interrupts can be triggered.
 	pinOut.High()
 	_, err = waitInterrupt(ich, 10*time.Millisecond)
