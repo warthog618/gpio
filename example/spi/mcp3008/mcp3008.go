@@ -35,10 +35,10 @@ func main() {
 	tclk := cfg.MustGet("tclk").Duration()
 	adc := mcp3w0c.NewMCP3008(
 		tclk,
-		int(cfg.MustGet("clk").Int()),
-		int(cfg.MustGet("csz").Int()),
-		int(cfg.MustGet("di").Int()),
-		int(cfg.MustGet("do").Int()))
+		cfg.MustGet("clk").Int(),
+		cfg.MustGet("csz").Int(),
+		cfg.MustGet("di").Int(),
+		cfg.MustGet("do").Int())
 	defer adc.Close()
 	for ch := 0; ch < 8; ch++ {
 		d := adc.Read(ch)
@@ -55,12 +55,9 @@ func loadConfig() *config.Config {
 		"do":   gpio.GPIO26,
 	}
 	def := dict.New(dict.WithMap(defaultConfig))
-	shortFlags := map[byte]string{
-		'c': "config-file",
-	}
-	// highest priority sources first - flags override environment
+	flags := []pflag.Flag{{Short: 'c', Name: "config-file"}}
 	cfg := config.New(
-		pflag.New(pflag.WithShortFlags(shortFlags)),
+		pflag.New(pflag.WithFlags(flags)),
 		env.New(env.WithEnvPrefix("MCP3008_")),
 		config.WithDefault(def))
 	cfg.Append(

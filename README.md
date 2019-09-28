@@ -127,10 +127,11 @@ pin.Unwatch()
 
 ## Tools
 
-A command line utility, **gppiio**, is provided to allow manual and scripted control of GPIO pins:
+A command line utility, **gppiio**, is provided to allow manual and scripted
+control of GPIO pins:
 
 ```sh
-$ ./gppiio 
+$ ./gppiio
 gppiio is a utility to control Raspberry Pi GPIO pins
 
 Usage:
@@ -168,9 +169,14 @@ GOOS=linux GOARCH=arm GOARM=6 go build
 
 The library is fully tested, other than some error cases that are difficult to test.
 
-The tests are intended to be run on a Raspberry Pi with J8 pin 7 floating and with pins 15 and 16 tied together, possibly using a jumper across the header.  The tests set J8 pin 16 to an output so **DO NOT** run them on hardware where that pin is being externally driven.
+The tests are intended to be run on a Raspberry Pi with J8 pin 7 floating and
+with pins 15 and 16 tied together, possibly using a jumper across the header.
+The tests set J8 pin 16 to an output so **DO NOT** run them on hardware where
+that pin is being externally driven.
 
-Tests have been run successfully on Raspberry Pi B (Rev 1 and Rev 2), B+, Pi2 B, and Pi Zero W.  The library should also work on other Raspberry Pi variants, I just don't have any available to test.
+Tests have been run successfully on Raspberry Pi B (Rev 1 and Rev 2), B+, Pi2 B,
+Pi4 B, and Pi Zero W.  The library should also work on other Raspberry Pi
+variants, I just don't have any available to test.
 
 The tests can be cross-compiled from other platforms using
 

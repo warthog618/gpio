@@ -59,11 +59,9 @@ func loadConfig() *config.Config {
 		"miso": gpio.GPIO22,
 	}
 	def := dict.New(dict.WithMap(defaultConfig))
-	shortFlags := map[byte]string{
-		'c': "config-file",
-	}
+	flags := []pflag.Flag{{Short: 'c', Name: "config-file"}}
 	cfg := config.New(
-		pflag.New(pflag.WithShortFlags(shortFlags)),
+		pflag.New(pflag.WithFlags(flags)),
 		env.New(env.WithEnvPrefix("MCP3208_")),
 		config.WithDefault(def))
 	cfg.Append(

@@ -40,10 +40,10 @@ func main() {
 	a := adc0832.New(
 		tclk,
 		tset,
-		int(cfg.MustGet("clk").Int()),
-		int(cfg.MustGet("csz").Int()),
-		int(cfg.MustGet("di").Int()),
-		int(cfg.MustGet("do").Int()))
+		cfg.MustGet("clk").Int(),
+		cfg.MustGet("csz").Int(),
+		cfg.MustGet("di").Int(),
+		cfg.MustGet("do").Int())
 	defer a.Close()
 	ch0 := a.Read(0)
 	ch1 := a.Read(1)
@@ -60,11 +60,9 @@ func loadConfig() *config.Config {
 		"do":   gpio.GPIO13,
 	}
 	def := dict.New(dict.WithMap(defaultConfig))
-	shortFlags := map[byte]string{
-		'c': "config-file",
-	}
+	flags := []pflag.Flag{{Short: 'c', Name: "config-file"}}
 	cfg := config.New(
-		pflag.New(pflag.WithShortFlags(shortFlags)),
+		pflag.New(pflag.WithFlags(flags)),
 		env.New(env.WithEnvPrefix("ADC0832_")),
 		config.WithDefault(def))
 	cfg.Append(
