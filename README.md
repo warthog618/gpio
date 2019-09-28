@@ -125,6 +125,35 @@ A watch can be removed using the *Unwatch* function.
 pin.Unwatch()
 ```
 
+## Tools
+
+A command line utility, **gppiio**, is provided to allow manual and scripted control of GPIO pins:
+
+```sh
+$ ./gppiio 
+gppiio is a utility to control Raspberry Pi GPIO pins
+
+Usage:
+  gppiio [flags]
+  gppiio [command]
+
+Available Commands:
+  detect      Identify the GPIO chip
+  get         Read the level of a pin or pins
+  help        Help about any command
+  mode        Read the functional mode of a pin or pins
+  pull        Set the pull direction of a pin or pins
+  set         Set the level of a pin or pins
+  version     Display the version
+
+Flags:
+  -h, --help      help for gppiio
+      --version   version for gppiio
+
+Use "gppiio [command] --help" for more information about a command.
+
+```
+
 ## Examples
 
 Refer to the [examples](example) for more examples of usage.
