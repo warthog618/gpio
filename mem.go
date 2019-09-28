@@ -20,8 +20,11 @@ import (
 type Chipset int
 
 const (
+	// Unknown by default
+	_ Chipset = iota
+
 	// BCM2835 indicates the chipset is BCM2825 or compatible.
-	BCM2835 Chipset = iota
+	BCM2835
 
 	// BCM2711 indicates the chipset is BCM2711.
 	BCM2711
@@ -30,6 +33,7 @@ const (
 // Arrays for 8 / 32 bit access to memory and a semaphore for write locking
 var (
 	chipset Chipset
+
 	// The memlock covers read/modify/write access to the mem block.
 	// Individual reads and writes can skip the lock on the assumption that
 	// concurrent register writes are atomic. e.g. Read, Write and Mode.
@@ -83,6 +87,13 @@ func Open() (err error) {
 	}
 
 	return nil
+}
+
+// Chip identifies the chipset on the system.
+//
+// This is not valid until Open has been called.
+func Chip() Chipset {
+	return chipset
 }
 
 // Close removes the interrupt handlers and unmaps GPIO memory

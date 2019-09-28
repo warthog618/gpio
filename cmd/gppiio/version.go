@@ -23,6 +23,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Display the version",
 	Long:  `All software has versions. This is gppiio's`,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("%s (gppiio) %s\n", os.Args[0], version)
 	},
