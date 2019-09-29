@@ -31,10 +31,13 @@ type Edge string
 const (
 	// EdgeNone indicates no level transitions will trigger an interrupt
 	EdgeNone Edge = "none"
+
 	// EdgeRising indicates an interrupt is triggered when the pin transitions from low to high.
 	EdgeRising Edge = "rising"
+
 	// EdgeFalling indicates an interrupt is triggered when the pin transitions from high to low.
 	EdgeFalling Edge = "falling"
+
 	// EdgeBoth indicates an interrupt is triggered when the pin changes level.
 	EdgeBoth Edge = "both"
 )
@@ -47,7 +50,8 @@ type interrupt struct {
 
 // Watcher monitors the pins for level transitions that trigger interrupts.
 type Watcher struct {
-	sync.Mutex // Guards the following, and sysfs interactions.
+	// Guards the following, and sysfs interactions.
+	sync.Mutex
 
 	epfd int
 
@@ -63,6 +67,7 @@ type Watcher struct {
 	// fds of the pipe for the shutdown handshake.
 	donefds []int
 
+	// true once the Watcher has been closed.
 	closed bool
 }
 
@@ -77,7 +82,8 @@ func getDefaultWatcher() *Watcher {
 	return defaultWatcher
 }
 
-// NewWatcher creates a goroutine that watches Pins for transitions that trigger interrupts.
+// NewWatcher creates a goroutine that watches Pins for transitions that trigger
+// interrupts.
 func NewWatcher() *Watcher {
 	epfd, err := unix.EpollCreate1(0)
 	if err != nil {
@@ -90,23 +96,23 @@ func NewWatcher() *Watcher {
 	}
 	epv := unix.EpollEvent{Events: unix.EPOLLIN, Fd: int32(p[0])}
 	unix.EpollCtl(epfd, unix.EPOLL_CTL_ADD, int(p[0]), &epv)
-	watcher := &Watcher{
+	w := &Watcher{
 		epfd:         epfd,
 		interruptFds: make(map[int]int),
 		interrupts:   make(map[int]*interrupt),
 		doneCh:       make(chan struct{}),
 		donefds:      p,
 	}
-	go watcher.watch()
+	go w.watch()
 
-	return watcher
+	return w
 }
 
-func (watcher *Watcher) watch() {
+func (w *Watcher) watch() {
 	var epollEvents [MaxGPIOInterrupt]unix.EpollEvent
-	defer close(watcher.doneCh)
+	defer close(w.doneCh)
 	for {
-		n, err := unix.EpollWait(watcher.epfd, epollEvents[:], -1)
+		n, err := unix.EpollWait(w.epfd, epollEvents[:], -1)
 		if err != nil {
 			if err == unix.EBADF || err == unix.EINVAL {
 				// fd closed so exit
@@ -117,20 +123,20 @@ func (watcher *Watcher) watch() {
 			}
 			panic(fmt.Sprintf("EpollWait error: %v", err))
 		}
-		watcher.Lock()
 		for i := 0; i < n; i++ {
 			event := epollEvents[i]
-			if event.Fd == int32(watcher.donefds[0]) {
-				unix.Close(watcher.epfd)
-				unix.Close(watcher.donefds[0])
-				watcher.Unlock()
+			if event.Fd == int32(w.donefds[0]) {
+				unix.Close(w.epfd)
+				unix.Close(w.donefds[0])
 				return
 			}
-			if irq, ok := watcher.interrupts[int(event.Fd)]; ok {
+			w.Lock()
+			irq, ok := w.interrupts[int(event.Fd)]
+			w.Unlock()
+			if ok {
 				go irq.handler(irq.pin)
 			}
 		}
-		watcher.Unlock()
 	}
 }
 
@@ -144,99 +150,35 @@ func closeInterrupts() {
 }
 
 // Close - His watch has ended.
-func (watcher *Watcher) Close() {
-	watcher.Lock()
-	if watcher.closed {
-		watcher.Unlock()
+func (w *Watcher) Close() {
+	w.Lock()
+	if w.closed {
+		w.Unlock()
 		return
 	}
-	watcher.closed = true
-	unix.Write(watcher.donefds[1], []byte("bye"))
-	for fd := range watcher.interrupts {
-		intr := watcher.interrupts[fd]
+	w.closed = true
+	unix.Write(w.donefds[1], []byte("bye"))
+	for fd := range w.interrupts {
+		intr := w.interrupts[fd]
 		intr.valueFile.Close()
 		unexport(intr.pin)
 	}
-	watcher.interrupts = nil
-	watcher.interruptFds = nil
-	watcher.Unlock()
-	<-watcher.doneCh
-	unix.Close(watcher.donefds[1])
-}
-
-// Wait for the sysfs GPIO files to become writable.
-func waitExported(pin *Pin) error {
-	path := fmt.Sprintf("/sys/class/gpio/gpio%v/value", pin.pin)
-	if err := waitWriteable(path); err != nil {
-		return err
-	}
-	path = fmt.Sprintf("/sys/class/gpio/gpio%v/edge", pin.pin)
-	return waitWriteable(path)
-}
-
-func waitWriteable(path string) error {
-	try := 0
-	for unix.Access(path, unix.W_OK) != nil {
-		try++
-		if try > 10 {
-			return ErrTimeout
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	return nil
-}
-
-func export(pin *Pin) error {
-	file, err := os.OpenFile("/sys/class/gpio/export", os.O_WRONLY, os.ModeExclusive)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = file.WriteString(strconv.Itoa(int(pin.pin)))
-	if e, ok := err.(*os.PathError); ok && e.Err == unix.EBUSY {
-		return ErrBusy
-	}
-	if err != nil {
-		return err
-	}
-	// wait for pin to be exported on sysfs - can take > 100ms on older Pis
-	return waitExported(pin)
-}
-
-func unexport(pin *Pin) error {
-	file, err := os.OpenFile("/sys/class/gpio/unexport", os.O_WRONLY, os.ModeExclusive)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = file.WriteString(strconv.Itoa(int(pin.pin)))
-	return err
-}
-
-func openValue(pin *Pin) (*os.File, error) {
-	path := fmt.Sprintf("/sys/class/gpio/gpio%v/value", pin.pin)
-	return os.OpenFile(path, os.O_RDWR, os.ModeExclusive)
-}
-
-func setEdge(pin *Pin, edge Edge) error {
-	path := fmt.Sprintf("/sys/class/gpio/gpio%v/edge", pin.pin)
-	file, err := os.OpenFile(path, os.O_RDWR, os.ModeExclusive)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = file.Write([]byte(edge))
-	return err
+	w.interrupts = nil
+	w.interruptFds = nil
+	w.Unlock()
+	<-w.doneCh
+	unix.Close(w.donefds[1])
 }
 
 // RegisterPin creates a watch on the given pin.
+//
 // The pin can only be registered once.  Subsequent registers,
 // without an Unregister, will return an error.
-func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) (err error) {
-	watcher.Lock()
-	defer watcher.Unlock()
+func (w *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) (err error) {
+	w.Lock()
+	defer w.Unlock()
 
-	_, ok := watcher.interruptFds[pin.pin]
+	_, ok := w.interruptFds[pin.pin]
 	if ok {
 		return ErrBusy
 	}
@@ -262,54 +204,121 @@ func (watcher *Watcher) RegisterPin(pin *Pin, edge Edge, handler func(*Pin)) (er
 		return err
 	}
 	event.Fd = int32(pinFd)
-	if err := unix.EpollCtl(watcher.epfd, unix.EPOLL_CTL_ADD, pinFd, &event); err != nil {
+	if err := unix.EpollCtl(w.epfd, unix.EPOLL_CTL_ADD, pinFd, &event); err != nil {
 		return err
 	}
-	watcher.interruptFds[pin.pin] = pinFd
-	watcher.interrupts[pinFd] = &interrupt{pin: pin, handler: handler, valueFile: valueFile}
+	w.interruptFds[pin.pin] = pinFd
+	w.interrupts[pinFd] = &interrupt{pin: pin, handler: handler, valueFile: valueFile}
 	return nil
 }
 
 // UnregisterPin removes any watch on the Pin.
-func (watcher *Watcher) UnregisterPin(pin *Pin) {
-	watcher.Lock()
-	defer watcher.Unlock()
+func (w *Watcher) UnregisterPin(pin *Pin) {
+	w.Lock()
+	defer w.Unlock()
 
-	pinFd, ok := watcher.interruptFds[pin.pin]
+	pinFd, ok := w.interruptFds[pin.pin]
 	if !ok {
 		return
 	}
-	delete(watcher.interruptFds, pin.pin)
-	unix.EpollCtl(watcher.epfd, unix.EPOLL_CTL_DEL, pinFd, nil)
+	delete(w.interruptFds, pin.pin)
+	unix.EpollCtl(w.epfd, unix.EPOLL_CTL_DEL, pinFd, nil)
 	unix.SetNonblock(pinFd, false)
-	intr, ok := watcher.interrupts[pinFd]
+	intr, ok := w.interrupts[pinFd]
 	if ok {
-		delete(watcher.interrupts, pinFd)
+		delete(w.interrupts, pinFd)
 		intr.valueFile.Close()
 	}
 	unexport(pin)
 }
 
 // Watch the pin for changes to level.
+//
 // The handler is called immediately, to allow the handler to initialise its state
 // with the current level, and then on the specified edges.
 // The edge determines which edge to watch.
 // There can only be one watcher on the pin at a time.
-func (pin *Pin) Watch(edge Edge, handler func(*Pin)) error {
+func (p *Pin) Watch(edge Edge, handler func(*Pin)) error {
 	watcher := getDefaultWatcher()
-	return watcher.RegisterPin(pin, edge, handler)
+	return watcher.RegisterPin(p, edge, handler)
 }
 
 // Unwatch removes any watch from the pin.
-func (pin *Pin) Unwatch() {
+func (p *Pin) Unwatch() {
 	watcher := getDefaultWatcher()
-	watcher.UnregisterPin(pin)
+	watcher.UnregisterPin(p)
+}
+
+func waitWriteable(path string) error {
+	try := 0
+	for unix.Access(path, unix.W_OK) != nil {
+		try++
+		if try > 10 {
+			return ErrTimeout
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return nil
+}
+
+func export(p *Pin) error {
+	file, err := os.OpenFile("/sys/class/gpio/export", os.O_WRONLY, os.ModeExclusive)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(strconv.Itoa(int(p.pin)))
+	if e, ok := err.(*os.PathError); ok && e.Err == unix.EBUSY {
+		return ErrBusy
+	}
+	if err != nil {
+		return err
+	}
+	// wait for pin to be exported on sysfs - can take > 100ms on older Pis
+	return waitExported(p)
+}
+
+func openValue(p *Pin) (*os.File, error) {
+	path := fmt.Sprintf("/sys/class/gpio/gpio%v/value", p.pin)
+	return os.OpenFile(path, os.O_RDWR, os.ModeExclusive)
+}
+
+func setEdge(p *Pin, edge Edge) error {
+	path := fmt.Sprintf("/sys/class/gpio/gpio%v/edge", p.pin)
+	file, err := os.OpenFile(path, os.O_RDWR, os.ModeExclusive)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write([]byte(edge))
+	return err
+}
+
+func unexport(p *Pin) error {
+	file, err := os.OpenFile("/sys/class/gpio/unexport", os.O_WRONLY, os.ModeExclusive)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(strconv.Itoa(int(p.pin)))
+	return err
+}
+
+// Wait for the sysfs GPIO files to become writable.
+func waitExported(p *Pin) error {
+	path := fmt.Sprintf("/sys/class/gpio/gpio%v/value", p.pin)
+	if err := waitWriteable(path); err != nil {
+		return err
+	}
+	path = fmt.Sprintf("/sys/class/gpio/gpio%v/edge", p.pin)
+	return waitWriteable(path)
 }
 
 var (
 	// ErrTimeout indicates the operation could not be performed within the
 	// expected time.
 	ErrTimeout = errors.New("timeout")
+
 	// ErrBusy indicates the operation is already active on the pin.
 	ErrBusy = errors.New("pin already in use")
 )
