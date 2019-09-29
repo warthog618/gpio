@@ -1,0 +1,22 @@
+language: go
+
+go:
+  - "1.x"
+  - "1.11"
+  - "1.12"
+  - tip
+
+os:
+  - linux
+
+matrix:
+  allow_failures:
+    - go: tip
+  fast_finish: true
+
+install:
+  - env GO111MODULE=on go get -t -v ./...
+
+script:
+  - env GO111MODULE=on go vet ./...
+  - make
