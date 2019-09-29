@@ -2,8 +2,7 @@ language: go
 
 go:
   - "1.x"
-  - "1.11"
-  - "1.13"
+  - "1.12"
   - tip
 
 os:
@@ -15,7 +14,7 @@ matrix:
   fast_finish: true
 
 install:
-  - env GO111MODULE=on go get -t -v ./...
+  - env GO111MODULE=on go get -v ./...
 
 script:
   - env GO111MODULE=on go vet ./...
