@@ -35,15 +35,11 @@ func main() {
 	tclk := cfg.MustGet("tclk").Duration()
 	adc := mcp3w0c.NewMCP3208(
 		tclk,
-		int(cfg.MustGet("sclk").Int()),
-		int(cfg.MustGet("ssz").Int()),
-		int(cfg.MustGet("mosi").Int()),
-		int(cfg.MustGet("miso").Int()))
+		cfg.MustGet("sclk").Int(),
+		cfg.MustGet("ssz").Int(),
+		cfg.MustGet("mosi").Int(),
+		cfg.MustGet("miso").Int())
 	defer adc.Close()
-	vbe := gpio.NewPin(gpio.GPIO16)
-	defer vbe.Input()
-	vbe.High()
-	vbe.Output()
 	for ch := 0; ch < 8; ch++ {
 		d := adc.Read(ch)
 		fmt.Printf("ch%d=0x%04x (%08b)\n", ch, d, d>>4)
@@ -59,9 +55,9 @@ func loadConfig() *config.Config {
 		"miso": gpio.GPIO22,
 	}
 	def := dict.New(dict.WithMap(defaultConfig))
-	flags := []pflag.Flag{{Short: 'c', Name: "config-file"}}
 	cfg := config.New(
-		pflag.New(pflag.WithFlags(flags)),
+		pflag.New(pflag.WithFlags(
+			[]pflag.Flag{{Short: 'c', Name: "config-file"}})),
 		env.New(env.WithEnvPrefix("MCP3208_")),
 		config.WithDefault(def))
 	cfg.Append(

@@ -55,9 +55,9 @@ func loadConfig() *config.Config {
 		"do":   gpio.GPIO26,
 	}
 	def := dict.New(dict.WithMap(defaultConfig))
-	flags := []pflag.Flag{{Short: 'c', Name: "config-file"}}
 	cfg := config.New(
-		pflag.New(pflag.WithFlags(flags)),
+		pflag.New(pflag.WithFlags(
+			[]pflag.Flag{{Short: 'c', Name: "config-file"}})),
 		env.New(env.WithEnvPrefix("MCP3008_")),
 		config.WithDefault(def))
 	cfg.Append(
