@@ -12,8 +12,9 @@ import (
 	"os"
 	"reflect"
 	"sync"
-	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 // Chipset identifies the GPIO chip.
@@ -62,12 +63,12 @@ func Open() (err error) {
 	defer memlock.Unlock()
 
 	// Memory map GPIO registers to byte array
-	mem8, err = syscall.Mmap(
+	mem8, err = unix.Mmap(
 		int(file.Fd()),
 		0,
 		memLength,
-		syscall.PROT_READ|syscall.PROT_WRITE,
-		syscall.MAP_SHARED)
+		unix.PROT_READ|unix.PROT_WRITE,
+		unix.MAP_SHARED)
 
 	if err != nil {
 		return
@@ -102,7 +103,7 @@ func Close() error {
 	defer memlock.Unlock()
 	closeInterrupts()
 	mem = make([]uint32, 0)
-	return syscall.Munmap(mem8)
+	return unix.Munmap(mem8)
 }
 
 var (
