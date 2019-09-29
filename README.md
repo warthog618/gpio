@@ -1,5 +1,6 @@
 # gpio
 
+[![Build Status](https://travis-ci.org/warthog618/gpio.svg)](https://travis-ci.org/warthog618/gpio)
 [![GoDoc](https://godoc.org/github.com/warthog618/gpio?status.svg)](https://godoc.org/github.com/warthog618/gpio)
 [![Go Report Card](https://goreportcard.com/badge/github.com/warthog618/gpio)](https://goreportcard.com/report/github.com/warthog618/gpio)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/warthog618/gpio/blob/master/LICENSE)
