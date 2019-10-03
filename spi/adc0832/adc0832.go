@@ -22,8 +22,8 @@ type ADC0832 struct {
 }
 
 // New creates a ADC0832.
-func New(tclk, tset time.Duration, sclk, ssz, mosi, miso int) *ADC0832 {
-	return &ADC0832{*spi.New(tclk, sclk, ssz, mosi, miso), tset}
+func New(tclk, tset time.Duration, clk, csz, di, do int) *ADC0832 {
+	return &ADC0832{*spi.New(tclk, clk, csz, di, do), tset}
 }
 
 // Read returns the value of a single channel read from the ADC.

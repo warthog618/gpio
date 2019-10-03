@@ -18,25 +18,25 @@ import (
 // Supported variants are MCP3004/3008/3204/3208.
 // The w indicates the width of the device (0 => 10, 2 => 12)
 // and the c the number of channels.
-// The two data pins, Mosi and Miso, may be tied and connected to a single GPIO pin.
+// The two data pins, di and do, may be tied and connected to a single GPIO pin.
 type MCP3w0c struct {
 	spi.SPI
 	width uint
 }
 
 // New creates a MCP3w0c.
-func New(tclk time.Duration, sclk, ssz, mosi, miso int, width uint) *MCP3w0c {
-	return &MCP3w0c{*spi.New(tclk, sclk, ssz, mosi, miso), width}
+func New(tclk time.Duration, clk, csz, di, do int, width uint) *MCP3w0c {
+	return &MCP3w0c{*spi.New(tclk, clk, csz, di, do), width}
 }
 
 // NewMCP3008 creates a MCP3008.
-func NewMCP3008(tclk time.Duration, sclk, ssz, mosi, miso int) *MCP3w0c {
-	return &MCP3w0c{*spi.New(tclk, sclk, ssz, mosi, miso), 10}
+func NewMCP3008(tclk time.Duration, clk, csz, di, do int) *MCP3w0c {
+	return &MCP3w0c{*spi.New(tclk, clk, csz, di, do), 10}
 }
 
 // NewMCP3208 creates a MCP3208.
-func NewMCP3208(tclk time.Duration, sclk, ssz, mosi, miso int) *MCP3w0c {
-	return &MCP3w0c{*spi.New(tclk, sclk, ssz, mosi, miso), 12}
+func NewMCP3208(tclk time.Duration, clk, csz, di, do int) *MCP3w0c {
+	return &MCP3w0c{*spi.New(tclk, clk, csz, di, do), 12}
 }
 
 // Read returns the value of a single channel read from the ADC.
