@@ -1,13 +1,13 @@
 # gpio
 
 [![Build Status](https://travis-ci.org/warthog618/gpio.svg)](https://travis-ci.org/warthog618/gpio)
-[![GoDoc](https://godoc.org/github.com/warthog618/gpio?status.svg)](https://godoc.org/github.com/warthog618/gpio)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/warthog618/gpio)
 [![Go Report Card](https://goreportcard.com/badge/github.com/warthog618/gpio)](https://goreportcard.com/report/github.com/warthog618/gpio)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/warthog618/gpio/blob/master/LICENSE)
 
 GPIO library for the Raspberry Pi.
 
-gpio is a Go library for accessing
+**gpio** is a Go library for accessing
 [GPIO](http://elinux.org/Rpi_Low-level_peripherals) pins on the [Raspberry
 Pi](https://en.wikipedia.org/wiki/Raspberry_Pi).
 
@@ -16,6 +16,47 @@ The library was inspired by and borrows from
 interrupt support, and [embd](https://github.com/kidoman/embd), which supports
 interrupts, but uses sysfs for read/write and has a far broader scope than I
 require.
+
+## :warning: Deprecation Warning :warning:
+
+This library relies on the sysfs GPIO interface which is deprecated in the Linux
+kernel and is due for removal during 2020.  Without sysfs, the watch/interrupt
+features of this library will no longer work.
+
+The sysfs GPIO interface has been superceded in the Linux kernel by the GPIO
+character device.  The newer API is sufficiently different that reworking this
+library to use that API is not practical.  Instead I have written a new library,
+[**gpiod**](https://github.com/warthog618/gpiod), that provides the same
+functionality as this library but using the GPIO character device.
+
+There are a couple of downsides to switching to **gpiod**:
+
+- The API is quite different, mostly due to the differences in the underlying
+  APIs, so it is not a plugin replacement - you will need to do some code
+  rework.
+- It is also slightly slower for both read and write as all hardware access is
+  now via kernel calls rather than via hardware registers.  However, if that is
+  an issue for you then you probably should be writing a kernel device driver
+  for your use case rather than trying to do something in userspace.
+- It requires a recent Linux kernel for full functionality.  While the GPIO
+  character device has been around since v4.8, the bias and reconfiguration
+  capabilities required to provide functional equivalence to **gpio** were only
+  added in v5.5.
+
+There are several benefits in the switch:
+
+- **gpiod** is not Raspberry Pi specific, but will work on any platform where
+  the GPIO chip is supported by the Linux kernel, so code using **gpiod** is
+  more portable.
+- **gpio** writes directly to hardware registers so it can conflict with other
+  kernel drivers.  The **gpiod** accesses the hardware internally using the same
+  interfaces as other kernel drivers and so should play nice with them.
+- **gpiod** supports Linux GPIO line labels, so you can find your line by name
+  (assuming it has been named by device-tree).
+- and of course, it will continue to work beyond 2020.
+
+I've already ported all my projects that were using **gpio** to **gpiod** and
+strongly suggest that you do the same.
 
 ## Features
 
@@ -160,7 +201,6 @@ Available Commands:
 
 Flags:
   -h, --help      help for gppiio
-      --version   version for gppiio
 
 Use "gppiio [command] --help" for more information about a command.
 ```
