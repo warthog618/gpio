@@ -5,6 +5,7 @@
 
 // Interrupt capabilities for DIO Pins.
 
+//go:build linux
 // +build linux
 
 package gpio
