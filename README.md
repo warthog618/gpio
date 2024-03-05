@@ -17,6 +17,8 @@ interrupt support, and [embd](https://github.com/kidoman/embd), which supports
 interrupts, but uses sysfs for read/write and has a far broader scope than I
 require.
 
+This library does not support the Pi5, and never will.
+
 ## :warning: Deprecation Warning :warning:
 
 This library relies on the sysfs GPIO interface which is deprecated in the Linux

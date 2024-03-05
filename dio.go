@@ -3,9 +3,7 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-//
-//
-// Package gpio provides GPIO access on the Raspberry Pi (rev 2 and later).
+// Package gpio provides GPIO access on the Raspberry Pi (rev 2 and later, up to but not including Pi5).
 //
 // Supports simple operations such as:
 // - Pin mode/direction (input/output)
@@ -14,22 +12,22 @@
 // - Pull up/down/off
 //
 // The package intentionally does not support:
-//  - the obsoleted rev 1 PCB (no longer worth the effort)
-//  - active low (to prevent confusion this package reflects only the actual hardware levels)
+//   - the obsoleted rev 1 PCB (no longer worth the effort)
+//   - active low (to prevent confusion this package reflects only the actual hardware levels)
 //
 // Example of use:
 //
-// 	gpio.Open()
-// 	defer gpio.Close()
+//	gpio.Open()
+//	defer gpio.Close()
 //
-// 	pin := gpio.NewPin(gpio.J8p7)
-// 	pin.Low()
-// 	pin.Output()
+//	pin := gpio.NewPin(gpio.J8p7)
+//	pin.Low()
+//	pin.Output()
 //
-// 	for {
-// 		pin.Toggle()
-// 		time.Sleep(time.Second)
-// 	}
+//	for {
+//		pin.Toggle()
+//		time.Sleep(time.Second)
+//	}
 //
 // The library uses the raw BCM2835 pin numbers, not the ports as they are mapped
 // on the J8 output pins for the Raspberry Pi.
@@ -37,7 +35,6 @@
 //
 // See the spec for full details of the BCM2835 controller:
 // http://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
-//
 package gpio
 
 import (
