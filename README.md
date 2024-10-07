@@ -28,10 +28,10 @@ features of this library will no longer work.
 The sysfs GPIO interface has been superceded in the Linux kernel by the GPIO
 character device.  The newer API is sufficiently different that reworking this
 library to use that API is not practical.  Instead I have written a new library,
-[**gpiod**](https://github.com/warthog618/gpiod), that provides the same
+[**gpiocdev**](https://github.com/warthog618/go-gpiocdev), that provides the same
 functionality as this library but using the GPIO character device.
 
-There are a couple of downsides to switching to **gpiod**:
+There are a couple of downsides to switching to **gpiocdev**:
 
 - The API is quite different, mostly due to the differences in the underlying
   APIs, so it is not a plugin replacement - you will need to do some code
@@ -47,17 +47,17 @@ There are a couple of downsides to switching to **gpiod**:
 
 There are several benefits in the switch:
 
-- **gpiod** is not Raspberry Pi specific, but will work on any platform where
-  the GPIO chip is supported by the Linux kernel, so code using **gpiod** is
+- **gpiocdev** is not Raspberry Pi specific, but will work on any platform where
+  the GPIO chip is supported by the Linux kernel, so code using **gpiocdev** is
   more portable.
 - **gpio** writes directly to hardware registers so it can conflict with other
-  kernel drivers.  The **gpiod** accesses the hardware internally using the same
+  kernel drivers.  The **gpiocdev** accesses the hardware internally using the same
   interfaces as other kernel drivers and so should play nice with them.
-- **gpiod** supports Linux GPIO line labels, so you can find your line by name
+- **gpiocdev** supports Linux GPIO line labels, so you can find your line by name
   (assuming it has been named by device-tree).
 - and of course, it will continue to work beyond 2020.
 
-I've already ported all my projects that were using **gpio** to **gpiod** and
+I've already ported all my projects that were using **gpio** to **gpiocdev** and
 strongly suggest that you do the same.
 
 ## Features
